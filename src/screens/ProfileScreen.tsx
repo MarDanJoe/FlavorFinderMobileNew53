@@ -1,131 +1,65 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Switch,
-  ScrollView,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const { user, signOut } = useAuth();
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Implement logout logic
-            navigation.navigate('Login' as never);
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to sign out');
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-      </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.profileSection}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color="#fff" />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.username}>John Doe</Text>
-              <Text style={styles.email}>john.doe@example.com</Text>
-            </View>
+            <Ionicons name="person" size={60} color="#ff6b6b" />
           </View>
+          <Text style={styles.username}>{user?.username}</Text>
+          <Text style={styles.email}>{user?.email}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="notifications-outline" size={24} color="#666" />
-              <Text style={styles.settingText}>Push Notifications</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#767577', true: '#ff6b6b' }}
-              thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="location-outline" size={24} color="#666" />
-              <Text style={styles.settingText}>Location Services</Text>
-            </View>
-            <Switch
-              value={locationEnabled}
-              onValueChange={setLocationEnabled}
-              trackColor={{ false: '#767577', true: '#ff6b6b' }}
-              thumbColor={locationEnabled ? '#fff' : '#f4f3f4'}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="moon-outline" size={24} color="#666" />
-              <Text style={styles.settingText}>Dark Mode</Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#767577', true: '#ff6b6b' }}
-              thumbColor={darkMode ? '#fff' : '#f4f3f4'}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <TouchableOpacity style={styles.button}>
+          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="person-outline" size={24} color="#666" />
-            <Text style={styles.buttonText}>Edit Profile</Text>
+            <Text style={styles.menuText}>Edit Profile</Text>
+            <Ionicons name="chevron-forward" size={24} color="#666" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button}>
-            <Ionicons name="lock-closed-outline" size={24} color="#666" />
-            <Text style={styles.buttonText}>Change Password</Text>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="notifications-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>Notifications</Text>
+            <Ionicons name="chevron-forward" size={24} color="#666" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button}>
-            <Ionicons name="help-circle-outline" size={24} color="#666" />
-            <Text style={styles.buttonText}>Help & Support</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.logoutButton]}
-            onPress={handleLogout}
-          >
-            <Ionicons name="log-out-outline" size={24} color="#ff6b6b" />
-            <Text style={[styles.buttonText, styles.logoutText]}>Logout</Text>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="settings-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>Preferences</Text>
+            <Ionicons name="chevron-forward" size={24} color="#666" />
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+        >
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,42 +68,25 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
-    padding: 15,
+    alignItems: 'center',
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ff6b6b',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-  profileSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 20,
   },
   avatarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#ff6b6b',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f8f9fa',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  profileInfo: {
-    marginLeft: 20,
+    marginBottom: 15,
   },
   username: {
     fontSize: 24,
@@ -181,9 +98,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   section: {
-    backgroundColor: '#fff',
     padding: 20,
-    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
@@ -191,39 +106,29 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: '#333',
   },
-  settingItem: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#eee',
   },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingText: {
+  menuText: {
+    flex: 1,
     marginLeft: 15,
     fontSize: 16,
     color: '#333',
   },
-  button: {
-    flexDirection: 'row',
+  signOutButton: {
+    margin: 20,
+    padding: 15,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 10,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
-  buttonText: {
-    marginLeft: 15,
+  signOutText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#333',
-  },
-  logoutButton: {
-    borderBottomWidth: 0,
-  },
-  logoutText: {
-    color: '#ff6b6b',
+    fontWeight: 'bold',
   },
 }); 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,43 +6,58 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
-interface Restaurant {
-  id: string;
-  name: string;
-  image: string;
-  rating: number;
-  priceLevel: number;
-  address: string;
-}
-
-const sampleFavorites: Restaurant[] = [
-  {
-    id: '1',
-    name: 'Sample Restaurant 1',
-    image: 'https://via.placeholder.com/400x300',
-    rating: 4.5,
-    priceLevel: 2,
-    address: '123 Main St, City',
-  },
-  // Add more sample favorites here
-];
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ENV } from '../config/env';
+import { Restaurant } from '../hooks/useRestaurants';
 
 export default function FavoritesScreen() {
+  const [favorites, setFavorites] = useState<Restaurant[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadFavorites = async () => {
+    try {
+      const favoritesString = await AsyncStorage.getItem(ENV.STORAGE_KEYS.FAVORITES);
+      if (favoritesString) {
+        const loadedFavorites = JSON.parse(favoritesString);
+        setFavorites(loadedFavorites);
+      }
+    } catch (err) {
+      console.error('Error loading favorites:', err);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadFavorites();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
   const renderRestaurantItem = ({ item }: { item: Restaurant }) => (
     <TouchableOpacity style={styles.card}>
-      <Image source={{ uri: item.image }} style={styles.image} />
+      <Image source={{ uri: item.image_url }} style={styles.image} />
       <View style={styles.content}>
         <Text style={styles.name}>{item.name}</Text>
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={16} color="#FFD700" />
           <Text style={styles.rating}>{item.rating}</Text>
         </View>
-        <Text style={styles.price}>{'$'.repeat(item.priceLevel)}</Text>
-        <Text style={styles.address}>{item.address}</Text>
+        {item.price && (
+          <Text style={styles.price}>{item.price}</Text>
+        )}
+        <Text style={styles.address}>{item.location.address1}</Text>
+        {item.distance && (
+          <Text style={styles.distance}>
+            {(item.distance / 1000).toFixed(1)} km away
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -52,19 +67,27 @@ export default function FavoritesScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Favorites</Text>
       </View>
-      {sampleFavorites.length > 0 ? (
+      {favorites.length > 0 ? (
         <FlatList
-          data={sampleFavorites}
+          data={favorites}
           renderItem={renderRestaurantItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#ff6b6b']}
+              tintColor="#ff6b6b"
+            />
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="heart-outline" size={64} color="#ff6b6b" />
           <Text style={styles.emptyText}>No favorites yet</Text>
           <Text style={styles.emptySubText}>
-            Start swiping to find restaurants you love!
+            Start swiping right on restaurants you love!
           </Text>
         </View>
       )}
@@ -134,6 +157,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   address: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  distance: {
     fontSize: 14,
     color: '#666',
   },

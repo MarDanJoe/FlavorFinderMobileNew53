@@ -5,27 +5,43 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Image,
+  ScrollView,
+  Alert,
 } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const navigation = useNavigation();
+  const [username, setUsername] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, signUp } = useAuth();
 
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
+    if (!email || !password || (!isLogin && !username)) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     try {
-      // TODO: Implement login logic with your backend
-      // For now, just navigate to main app
-      navigation.navigate('MainApp' as never);
+      setIsSubmitting(true);
+      if (isLogin) {
+        await signIn(email, password);
+      } else {
+        await signUp(email, username, password);
+      }
     } catch (error) {
-      console.error('Login failed:', error);
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'An error occurred'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -33,62 +49,77 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.content}
+        style={styles.container}
       >
-        <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Ionicons name="restaurant" size={60} color="#ff6b6b" />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>FlavorFinder</Text>
+            <Text style={styles.subtitle}>
+              {isLogin ? 'Welcome back!' : 'Create an account'}
+            </Text>
           </View>
-          <Text style={styles.title}>FlavorFinder</Text>
-          <Text style={styles.subtitle}>Discover your next favorite meal</Text>
-        </View>
 
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={styles.form}>
             <TextInput
               style={styles.input}
-              placeholder="Username"
-              value={username}
-              onChangeText={setUsername}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
             />
-          </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            {!isLogin && (
+              <TextInput
+                style={styles.input}
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            )}
+
             <TextInput
               style={styles.input}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry={!showPassword}
+              secureTextEntry
             />
+
             <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
+              style={[styles.button, isSubmitting && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
             >
-              <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color="#666"
-              />
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {isLogin ? 'Sign In' : 'Sign Up'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.switchButton}
+              onPress={() => {
+                setIsLogin(!isLogin);
+                setEmail('');
+                setPassword('');
+                setUsername('');
+              }}
+            >
+              <Text style={styles.switchButtonText}>
+                {isLogin
+                  ? "Don't have an account? Sign Up"
+                  : 'Already have an account? Sign In'}
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Log In</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => navigation.navigate('Register' as never)}
-          >
-            <Text style={styles.registerButtonText}>
-              Don't have an account? Sign up
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -99,77 +130,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: 20,
   },
-  logoContainer: {
+  header: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#ff6b6b'
-  },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#ff6b6b',
-    marginBottom: 5,
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#666',
-    marginBottom: 20,
   },
   form: {
     width: '100%',
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+  input: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
     borderRadius: 10,
     marginBottom: 15,
-    paddingHorizontal: 15,
+    fontSize: 16,
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 10,
-  },
-  loginButton: {
+  button: {
     backgroundColor: '#ff6b6b',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: 15,
   },
-  loginButtonText: {
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  registerButton: {
-    marginTop: 15,
+  switchButton: {
     alignItems: 'center',
   },
-  registerButtonText: {
+  switchButtonText: {
     color: '#ff6b6b',
-    fontSize: 14,
+    fontSize: 16,
   },
 }); 
