@@ -3,6 +3,24 @@ import * as Location from 'expo-location';
 import { searchRestaurants } from '../services/api';
 import { ENV } from '../config/env';
 
+// Helper function to calculate distance between two points using Haversine formula
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+};
+
+const deg2rad = (deg: number): number => {
+  return deg * (Math.PI / 180);
+};
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -90,83 +108,98 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
   }, [seenRestaurants, params?.rating, params?.price]);
 
   // Fetch restaurants based on location
-  const fetchRestaurants = useCallback(async (pageToken?: string) => {
-    if (!location) {
-      console.log('No location available, skipping restaurant fetch');
-      return;
-    }
-
+  const fetchRestaurants = useCallback(async (isFirstPage: boolean = true) => {
     try {
-      setError(null);
-      if (!pageToken) {
-        setLoading(true);
+      if (!location) {
+        console.log('No user location available');
+        return;
       }
-      setIsFetchingMore(true);
+
+      setLoading(true);
+      setError(null);
 
       console.log('Fetching restaurants:', {
-        isFirstPage: !pageToken,
         currentCount: restaurants.length,
-        pageToken,
         filters: params,
-        isInitialFetch
+        isFirstPage,
+        isInitialFetch,
+        pageToken: isFirstPage ? undefined : nextPageToken,
       });
 
-      const results = await searchRestaurants(
-        location.coords.latitude,
-        location.coords.longitude,
-        params?.radius || ENV.DEFAULTS.SEARCH_RADIUS,
-        ENV.DEFAULTS.RESULTS_LIMIT,
-        pageToken
-      );
+      const { results, nextPageToken: newPageToken } = await searchRestaurants({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        radius: params?.radius || ENV.DEFAULTS.SEARCH_RADIUS,
+        pageSize: ENV.DEFAULTS.RESULTS_LIMIT,
+        pageToken: isFirstPage ? undefined : nextPageToken,
+      });
 
-      const newRestaurants = filterNewRestaurants(results.restaurants);
+      console.log('Search results:', {
+        count: results.length,
+        hasNextPage: !!newPageToken,
+      });
 
-      if (newRestaurants.length === 0) {
-        if (!pageToken && !isInitialFetch) {
+      // Transform the results into our restaurant format
+      const newRestaurants = results.map((place: any) => ({
+        id: place.place_id,
+        name: place.name,
+        image_url: place.photos?.[0]
+          ? `${ENV.API.BASE_URL}/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=${ENV.API.KEY}`
+          : 'https://via.placeholder.com/400x300?text=No+Image',
+        rating: place.rating || 0,
+        price: place.price_level ? '$'.repeat(place.price_level) : undefined,
+        location: {
+          address1: place.vicinity,
+          city: '',
+          state: '',
+          zip_code: '',
+        },
+        coordinates: {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng,
+        },
+        distance: calculateDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          place.geometry.location.lat,
+          place.geometry.location.lng
+        ),
+      }));
+
+      // Filter out duplicates and apply filters
+      const filteredNewRestaurants = filterNewRestaurants(newRestaurants);
+
+      if (filteredNewRestaurants.length === 0) {
+        if (!isInitialFetch) {
           setError('No restaurants found in your area. Try adjusting your filters.');
         }
+        setLoading(false);
         return;
       }
 
       // Add new restaurants to seen set
-      newRestaurants.forEach(r => seenRestaurants.add(r.id));
+      filteredNewRestaurants.forEach(r => seenRestaurants.add(r.id));
 
-      if (pageToken) {
-        setRestaurants(prev => {
-          const updated = [...prev, ...newRestaurants];
-          console.log('Updated restaurants list:', {
-            previousCount: prev.length,
-            newCount: updated.length,
-            addedCount: newRestaurants.length,
-            restaurants: updated.map(r => r.name)
-          });
-          return updated;
+      setRestaurants(prev => {
+        const updated = isFirstPage ? filteredNewRestaurants : [...prev, ...filteredNewRestaurants];
+        console.log('Restaurants state updated:', {
+          allRestaurants: updated,
+          count: updated.length,
+          currentIndex,
+          currentRestaurant: updated[currentIndex],
         });
-      } else {
-        console.log('Setting initial restaurants:', {
-          count: newRestaurants.length,
-          restaurants: newRestaurants.map(r => r.name)
-        });
-        setRestaurants(newRestaurants);
-        setCurrentIndex(0);
-      }
+        return updated;
+      });
 
-      setNextPageToken(results.nextPageToken);
+      setNextPageToken(newPageToken);
       setIsInitialFetch(false);
-
-      // If we got too few results, immediately fetch more
-      if (newRestaurants.length < 5 && results.nextPageToken) {
-        setTimeout(() => fetchRestaurants(results.nextPageToken), 2000);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error fetching restaurants';
-      setError(errorMessage);
-      console.error('Error fetching restaurants:', err);
-    } finally {
       setLoading(false);
-      setIsFetchingMore(false);
+    } catch (error) {
+      console.error('Error fetching restaurants:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch restaurants');
+      setLoading(false);
     }
-  }, [location, params, filterNewRestaurants, restaurants.length, isInitialFetch]);
+  }, [location, params, restaurants.length, currentIndex, isInitialFetch, nextPageToken, filterNewRestaurants]);
 
   // Get next restaurant
   const nextRestaurant = useCallback(() => {
@@ -176,14 +209,14 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
         totalRestaurants: currentRestaurants.length,
         hasNextPage: !!nextPageToken,
         isFetchingMore,
-        currentRestaurant: currentRestaurants[currentIndex]?.name,
-        allRestaurants: currentRestaurants.map(r => r.name)
+        currentRestaurant: currentRestaurants[currentIndex],
+        allRestaurants: currentRestaurants
       });
 
       if (currentIndex < currentRestaurants.length - 1) {
         setCurrentIndex(prev => prev + 1);
       } else if (nextPageToken && !isFetchingMore) {
-        fetchRestaurants(nextPageToken);
+        fetchRestaurants(false);
       } else if (!nextPageToken) {
         setCurrentIndex(0);
       }
@@ -214,8 +247,8 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     console.log('Restaurants state updated:', {
       count: restaurants.length,
       currentIndex,
-      currentRestaurant: restaurants[currentIndex]?.name,
-      allRestaurants: restaurants.map(r => r.name)
+      currentRestaurant: restaurants[currentIndex],
+      allRestaurants: restaurants
     });
   }, [restaurants, currentIndex]);
 

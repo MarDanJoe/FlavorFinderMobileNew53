@@ -2,64 +2,74 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-
 import { useAuth } from '../contexts/AuthContext';
+import { HomeScreen } from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
-import HomeScreen from '../screens/HomeScreen';
+import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import RestaurantDetailsScreen from '../screens/RestaurantDetailsScreen';
+import { Ionicons } from '@expo/vector-icons';
 
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+// Define the types for our navigation
+export type RootStackParamList = {
+  Login: undefined;
+  MainApp: undefined;
+  RestaurantDetail: { id: string };
+  Favorites: undefined;
+  Profile: undefined;
+};
 
-function MainTabs() {
+export type TabParamList = {
+  Home: undefined;
+  Favorites: undefined;
+  Profile: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
+
+const MainTabs = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
+          let iconName: keyof typeof Ionicons.glyphMap;
 
           if (route.name === 'Home') {
-            iconName = focused ? 'restaurant' : 'restaurant-outline';
+            iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Favorites') {
             iconName = focused ? 'heart' : 'heart-outline';
-          } else if (route.name === 'Profile') {
+          } else {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <Ionicons name={iconName as any} size={size} color={color} />;
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#ff6b6b',
+        tabBarActiveTintColor: '#FF6B6B',
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen
-        name="Home"
+      <Tab.Screen 
+        name="Home" 
         component={HomeScreen}
         options={{ headerShown: false }}
       />
-      <Tab.Screen
-        name="Favorites"
+      <Tab.Screen 
+        name="Favorites" 
         component={FavoritesScreen}
         options={{ headerShown: false }}
       />
-      <Tab.Screen
-        name="Profile"
+      <Tab.Screen 
+        name="Profile" 
         component={ProfileScreen}
         options={{ headerShown: false }}
       />
     </Tab.Navigator>
   );
-}
+};
 
-export default function AppNavigator() {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return null; // Or a loading screen
-  }
+export const AppNavigator = () => {
+  const { isAuthenticated } = useAuth();
 
   return (
     <NavigationContainer>
@@ -70,16 +80,13 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="MainApp" component={MainTabs} />
             <Stack.Screen 
-              name="RestaurantDetails" 
-              component={RestaurantDetailsScreen}
-              options={{
-                headerShown: false,
-                presentation: 'modal',
-              }}
+              name="RestaurantDetail" 
+              component={RestaurantDetailScreen}
+              options={{ headerShown: true }}
             />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
-} 
+}; 

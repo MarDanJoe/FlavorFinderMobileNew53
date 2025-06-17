@@ -3,35 +3,58 @@ import {
   View,
   Text,
   StyleSheet,
-  Animated,
-  PanResponder,
   Dimensions,
   Image,
   TouchableOpacity,
   Modal,
   ActivityIndicator,
   ImageStyle,
+  ScrollView,
+  TextInput,
+  Alert,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRestaurants, Restaurant } from '../hooks/useRestaurants';
 import { ENV } from '../config/env';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList, TabParamList } from '../navigation/AppNavigator';
+import * as Animatable from 'react-native-animatable';
+
+type HomeScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList, 'Home'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+type Props = {
+  navigation: HomeScreenNavigationProp;
+};
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SWIPE_THRESHOLD = 120;
+const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
+const SWIPE_OUT_DURATION = 250;
 
-export default function HomeScreen({ navigation }) {
+interface Address {
+  address1: string;
+  city: string;
+  state: string;
+  zip_code: string;
+}
+
+export function HomeScreen({ navigation }: Props) {
   const [filterParams, setFilterParams] = useState({
-    radius: ENV.DEFAULTS.SEARCH_RADIUS,
     rating: 0,
-    price: [],
+    price: [] as string[],
   });
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const { currentRestaurant, loading, error, nextRestaurant } = useRestaurants(filterParams);
-
   const position = useRef(new Animated.ValueXY()).current;
+  const cardRef = useRef<Animatable.View>(null);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -41,15 +64,50 @@ export default function HomeScreen({ navigation }) {
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx > SWIPE_THRESHOLD) {
-          swipeRight();
+          forceSwipe('right');
         } else if (gesture.dx < -SWIPE_THRESHOLD) {
-          swipeLeft();
+          forceSwipe('left');
         } else {
           resetPosition();
         }
       },
     })
   ).current;
+
+  const forceSwipe = (direction: 'left' | 'right') => {
+    const x = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
+    Animated.timing(position, {
+      toValue: { x, y: 0 },
+      duration: SWIPE_OUT_DURATION,
+      useNativeDriver: false,
+    }).start(() => onSwipeComplete(direction));
+  };
+
+  const onSwipeComplete = (direction: 'left' | 'right') => {
+    const item = currentRestaurant;
+    direction === 'right' ? addToFavorites(item) : null;
+    position.setValue({ x: 0, y: 0 });
+    nextRestaurant();
+  };
+
+  const resetPosition = () => {
+    Animated.spring(position, {
+      toValue: { x: 0, y: 0 },
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const getCardStyle = () => {
+    const rotate = position.x.interpolate({
+      inputRange: [-SCREEN_WIDTH * 1.5, 0, SCREEN_WIDTH * 1.5],
+      outputRange: ['-120deg', '0deg', '120deg'],
+    });
+
+    return {
+      ...position.getLayout(),
+      transform: [{ rotate }],
+    };
+  };
 
   const addToFavorites = async (restaurant: Restaurant) => {
     try {
@@ -62,62 +120,24 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const swipeRight = () => {
-    Animated.timing(position, {
-      toValue: { x: SCREEN_WIDTH * 2, y: 0 },
-      duration: 250,
-      useNativeDriver: false,
-    }).start(() => {
-      onSwipeComplete('right');
-    });
-  };
-
-  const swipeLeft = () => {
-    Animated.timing(position, {
-      toValue: { x: -SCREEN_WIDTH * 2, y: 0 },
-      duration: 250,
-      useNativeDriver: false,
-    }).start(() => {
-      onSwipeComplete('left');
-    });
-  };
-
-  const resetPosition = () => {
-    Animated.spring(position, {
-      toValue: { x: 0, y: 0 },
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const onSwipeComplete = (direction: 'left' | 'right') => {
-    const restaurant = currentRestaurant;
-    if (direction === 'right' && restaurant) {
-      addToFavorites(restaurant);
+  const formatAddress = (location: string | Address) => {
+    if (typeof location === 'string') {
+      try {
+        const address = JSON.parse(location) as Address;
+        return `${address.address1}, ${address.city}, ${address.state} ${address.zip_code}`;
+      } catch {
+        return location;
+      }
     }
-    position.setValue({ x: 0, y: 0 });
-    setTimeout(() => {
-      nextRestaurant();
-    }, 100);
-  };
-
-  const getCardStyle = () => {
-    const rotate = position.x.interpolate({
-      inputRange: [-SCREEN_WIDTH * 2, 0, SCREEN_WIDTH * 2],
-      outputRange: ['-120deg', '0deg', '120deg'],
-    });
-
-    return {
-      ...position.getLayout(),
-      transform: [{ rotate }],
-    };
+    return `${location.address1}, ${location.city}, ${location.state} ${location.zip_code}`;
   };
 
   const renderFilters = () => (
     <Modal
-      visible={showFilters}
+      visible={showFilterModal}
       transparent={true}
       animationType="slide"
-      onRequestClose={() => setShowFilters(false)}
+      onRequestClose={() => setShowFilterModal(false)}
     >
       <View style={styles.filterModal}>
         <View style={styles.filterContent}>
@@ -172,13 +192,26 @@ export default function HomeScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.applyButton}
-            onPress={() => setShowFilters(false)}
+            onPress={() => setShowFilterModal(false)}
           >
             <Text style={styles.applyButtonText}>Apply Filters</Text>
           </TouchableOpacity>
         </View>
       </View>
     </Modal>
+  );
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity 
+        onPress={() => setShowFilterModal(true)}
+        style={styles.filterButton}
+      >
+        <Ionicons name="filter" size={24} color="#FF6B6B" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>FlavorFinder</Text>
+      <View style={styles.headerRight} />
+    </View>
   );
 
   const renderCard = () => {
@@ -201,64 +234,85 @@ export default function HomeScreen({ navigation }) {
 
     if (!currentRestaurant) {
       return (
-        <View style={styles.noMoreCards}>
-          <Text style={styles.noMoreCardsText}>No more restaurants!</Text>
-          <Text style={styles.noMoreCardsSubText}>
-            Check back later for more options
-          </Text>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>No more restaurants found</Text>
         </View>
       );
     }
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('RestaurantDetails', { restaurant: currentRestaurant })}
+      <Animated.View
+        style={[styles.card, getCardStyle()]}
+        {...panResponder.panHandlers}
       >
-        <Animated.View
-          style={[styles.card, getCardStyle()]}
-          {...panResponder.panHandlers}
-        >
-          <Image source={{ uri: currentRestaurant.image_url }} style={styles.image} />
-          <View style={styles.cardContent}>
-            <Text style={styles.name}>{currentRestaurant.name}</Text>
+        <Image
+          source={{ uri: currentRestaurant.image_url }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+        <View style={styles.cardContent}>
+          <Text style={styles.name}>{currentRestaurant.name}</Text>
+          <Text style={styles.subtitle}>
+            {currentRestaurant.categories?.map(cat => cat.title).join(' • ')}
+          </Text>
+          <View style={styles.details}>
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.rating}>{currentRestaurant.rating}</Text>
+              <Text style={styles.rating}>
+                {currentRestaurant.rating?.toFixed(1)}
+              </Text>
             </View>
-            {currentRestaurant.price && (
-              <Text style={styles.price}>{currentRestaurant.price}</Text>
-            )}
-            <Text style={styles.address}>{currentRestaurant.location.address1}</Text>
-            <Text style={styles.distance}>
-              {(currentRestaurant.distance / 1000).toFixed(1)} km away
+            <Text style={styles.price}>
+              {currentRestaurant.price || 'Price not available'}
             </Text>
           </View>
-        </Animated.View>
+          <Text style={styles.address}>
+            {formatAddress(currentRestaurant.location)}
+          </Text>
+          <Text style={styles.distance}>
+            {currentRestaurant.distance.toFixed(1)} miles away
+          </Text>
+        </View>
+      </Animated.View>
+    );
+  };
+
+  const renderRestaurantCard = (restaurant: Restaurant) => {
+    if (!restaurant) return null;
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('RestaurantDetail', { id: restaurant.id })}
+        activeOpacity={0.9}
+      >
+        <Image
+          source={{ uri: restaurant.image_url }}
+          style={styles.image}
+          onError={(e) => console.log('Error loading image:', e.nativeEvent.error)}
+        />
+        <View style={styles.cardContent}>
+          <Text style={styles.name}>{restaurant.name}</Text>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={styles.rating}>{restaurant.rating.toFixed(1)}</Text>
+          </View>
+          <Text style={styles.price}>{restaurant.price}</Text>
+          <Text style={styles.address}>{restaurant.location.address1}</Text>
+          <Text style={styles.distance}>{restaurant.distance.toFixed(1)} miles away</Text>
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilters(true)}
-        >
-          <Ionicons name="options" size={24} color="#ff6b6b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>FlavorFinder</Text>
-        <TouchableOpacity
-          style={styles.favoritesButton}
-          onPress={() => navigation.navigate('Favorites')}
-        >
-          <Ionicons name="heart" size={24} color="#ff6b6b" />
-        </TouchableOpacity>
-      </View>
+      {renderHeader()}
+      {renderFilters()}
       <View style={styles.cardContainer}>
-        {renderCard()}
-        {renderFilters()}
+        <View style={styles.cardWrapper}>
+          {renderCard()}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -267,39 +321,51 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#ff6b6b',
+    color: '#FF6B6B',
+    textAlign: 'center',
+    flex: 1,
   },
   filterButton: {
-    padding: 5,
+    padding: 8,
+  },
+  headerRight: {
+    width: 40, // To balance the filter button on the left
   },
   favoritesButton: {
-    padding: 5,
+    padding: 8,
   },
   cardContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 15,
+    alignItems: 'center',
+  },
+  cardWrapper: {
+    width: SCREEN_WIDTH - 32,
+    height: '80%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   card: {
-    width: SCREEN_WIDTH - 30,
-    height: SCREEN_HEIGHT * 0.6,
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -308,92 +374,86 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
-    height: '60%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    resizeMode: 'cover',
+    height: '50%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   cardContent: {
-    padding: 15,
+    padding: 16,
+    flex: 1,
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  ratingContainer: {
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  details: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
   rating: {
-    marginLeft: 5,
+    marginLeft: 4,
     fontSize: 16,
     color: '#666',
   },
   price: {
     fontSize: 16,
-    color: '#2ecc71',
-    marginBottom: 8,
+    color: '#666',
   },
   address: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   distance: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
   },
   messageContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   messageText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#666',
-    marginTop: 10,
-  },
-  noMoreCards: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  noMoreCardsText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 10,
-  },
-  noMoreCardsSubText: {
-    fontSize: 16,
-    color: '#999',
     textAlign: 'center',
+    marginTop: 10,
   },
   filterModal: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   filterContent: {
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
   },
   filterTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    textAlign: 'center',
   },
   filterLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
     marginBottom: 10,
   },
   priceButtons: {
@@ -401,56 +461,56 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   priceButton: {
-    flex: 1,
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ddd',
-    marginRight: 10,
-    borderRadius: 5,
-    alignItems: 'center',
+    marginRight: 8,
   },
   priceButtonActive: {
     backgroundColor: '#ff6b6b',
     borderColor: '#ff6b6b',
   },
   priceButtonText: {
+    fontSize: 16,
     color: '#666',
   },
   priceButtonTextActive: {
-    color: '#fff',
+    color: 'white',
   },
   ratingButtons: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     marginBottom: 20,
   },
   ratingButton: {
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ddd',
-    marginRight: 10,
-    marginBottom: 10,
-    borderRadius: 5,
+    marginRight: 8,
   },
   ratingButtonActive: {
     backgroundColor: '#ff6b6b',
     borderColor: '#ff6b6b',
   },
   ratingButtonText: {
+    fontSize: 16,
     color: '#666',
   },
   ratingButtonTextActive: {
-    color: '#fff',
+    color: 'white',
   },
   applyButton: {
     backgroundColor: '#ff6b6b',
-    padding: 15,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 8,
     alignItems: 'center',
   },
   applyButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 }); 
