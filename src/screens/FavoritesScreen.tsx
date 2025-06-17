@@ -40,38 +40,41 @@ export default function FavoritesScreen() {
     loadFavorites();
   }, []);
 
-  const renderRestaurantItem = ({ item }: { item: Restaurant }) => (
-    <TouchableOpacity style={styles.card}>
-      <Image source={{ uri: item.image_url }} style={styles.image} />
-      <View style={styles.content}>
-        <Text style={styles.name}>{item.name}</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.rating}>{item.rating}</Text>
+  const renderRestaurantItem = ({ item }: { item: Restaurant }) => {
+    if (!item) return null;
+    return (
+      <TouchableOpacity style={styles.card}>
+        <Image source={{ uri: item.image_url }} style={styles.image} />
+        <View style={styles.content}>
+          <Text style={styles.name}>{item.name}</Text>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={16} color="#FFD700" />
+            <Text style={styles.rating}>{item.rating}</Text>
+          </View>
+          {item.price && (
+            <Text style={styles.price}>{item.price}</Text>
+          )}
+          <Text style={styles.address}>{item.location.address1}</Text>
+          {item.distance && (
+            <Text style={styles.distance}>
+              {(item.distance / 1000).toFixed(1)} km away
+            </Text>
+          )}
         </View>
-        {item.price && (
-          <Text style={styles.price}>{item.price}</Text>
-        )}
-        <Text style={styles.address}>{item.location.address1}</Text>
-        {item.distance && (
-          <Text style={styles.distance}>
-            {(item.distance / 1000).toFixed(1)} km away
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Favorites</Text>
       </View>
-      {favorites.length > 0 ? (
+      {favorites.filter(Boolean).length > 0 ? (
         <FlatList
-          data={favorites}
+          data={favorites.filter(Boolean)}
           renderItem={renderRestaurantItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item?.id || Math.random().toString()}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
