@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Location from 'expo-location';
 import { searchRestaurants } from '../services/api';
 import { ENV } from '../config/env';
@@ -52,6 +52,7 @@ interface UseRestaurantsParams {
 
 export const useRestaurants = (params?: UseRestaurantsParams) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const restaurantsRef = useRef<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,28 +61,6 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [seenRestaurants] = useState(new Set<string>());
   const [isInitialFetch, setIsInitialFetch] = useState(true);
-
-  // Get user's location
-  const getLocation = async () => {
-    try {
-      setError(null);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError('Permission to access location was denied');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      console.log('Got user location:', {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-      setLocation(location);
-    } catch (err) {
-      setError('Error getting location. Please make sure location services are enabled.');
-      console.error('Error getting location:', err);
-    }
-  };
 
   // Filter out duplicates and already seen restaurants
   const filterNewRestaurants = useCallback((newRestaurants: Restaurant[]) => {
@@ -107,7 +86,6 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     });
   }, [seenRestaurants, params?.rating, params?.price]);
 
-  // Fetch restaurants based on location
   const fetchRestaurants = useCallback(async (isFirstPage: boolean = true) => {
     try {
       if (!location) {
@@ -119,7 +97,7 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
       setError(null);
 
       console.log('Fetching restaurants:', {
-        currentCount: restaurants.length,
+        currentCount: restaurantsRef.current.length,
         filters: params,
         isFirstPage,
         isInitialFetch,
@@ -138,6 +116,12 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
         count: results.length,
         hasNextPage: !!newPageToken,
       });
+
+      if (!results || results.length === 0) {
+        setError('No restaurants found in your area. Try adjusting your filters.');
+        setLoading(false);
+        return;
+      }
 
       // Transform the results into our restaurant format
       const newRestaurants = results.map((place: any) => ({
@@ -180,15 +164,15 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
       // Add new restaurants to seen set
       filteredNewRestaurants.forEach(r => seenRestaurants.add(r.id));
 
-      setRestaurants(prev => {
-        const updated = isFirstPage ? filteredNewRestaurants : [...prev, ...filteredNewRestaurants];
-        console.log('Restaurants state updated:', {
-          allRestaurants: updated,
-          count: updated.length,
-          currentIndex,
-          currentRestaurant: updated[currentIndex],
-        });
-        return updated;
+      const updated = isFirstPage ? filteredNewRestaurants : [...restaurantsRef.current, ...filteredNewRestaurants];
+      restaurantsRef.current = updated;
+      setRestaurants(updated);
+
+      console.log('Restaurants state updated:', {
+        count: updated.length,
+        currentIndex,
+        currentRestaurant: updated[currentIndex],
+        allRestaurants: updated,
       });
 
       setNextPageToken(newPageToken);
@@ -199,61 +183,110 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
       setError(error instanceof Error ? error.message : 'Failed to fetch restaurants');
       setLoading(false);
     }
-  }, [location, params, restaurants.length, currentIndex, isInitialFetch, nextPageToken, filterNewRestaurants]);
+  }, [location, params, currentIndex, isInitialFetch, nextPageToken, filterNewRestaurants]);
 
-  // Get next restaurant
   const nextRestaurant = useCallback(() => {
-    setRestaurants(currentRestaurants => {
-      console.log('Next restaurant requested:', {
-        currentIndex,
-        totalRestaurants: currentRestaurants.length,
-        hasNextPage: !!nextPageToken,
-        isFetchingMore,
-        currentRestaurant: currentRestaurants[currentIndex],
-        allRestaurants: currentRestaurants
-      });
-
-      if (currentIndex < currentRestaurants.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-      } else if (nextPageToken && !isFetchingMore) {
-        fetchRestaurants(false);
-      } else if (!nextPageToken) {
-        setCurrentIndex(0);
-      }
-      return currentRestaurants;
+    console.log('Next restaurant requested:', {
+      currentIndex,
+      totalRestaurants: restaurantsRef.current.length,
+      hasNextPage: !!nextPageToken,
+      isFetchingMore,
+      currentRestaurant: restaurantsRef.current[currentIndex],
+      allRestaurants: restaurantsRef.current,
     });
+
+    if (currentIndex < restaurantsRef.current.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else if (nextPageToken && !isFetchingMore) {
+      setIsFetchingMore(true);
+      fetchRestaurants(false).finally(() => {
+        setIsFetchingMore(false);
+      });
+    } else if (!nextPageToken && restaurantsRef.current.length > 0) {
+      // If we've gone through all restaurants, fetch a new batch
+      seenRestaurants.clear();
+      setCurrentIndex(0);
+      fetchRestaurants(true);
+    }
   }, [currentIndex, nextPageToken, isFetchingMore, fetchRestaurants]);
 
   // Initialize location and restaurants
   useEffect(() => {
-    getLocation();
+    let mounted = true;
+    const initLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setError('Permission to access location was denied');
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        if (mounted) {
+          console.log('Got initial location:', {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+          setLocation(location);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError('Error getting location. Please make sure location services are enabled.');
+          console.error('Error getting location:', err);
+        }
+      }
+    };
+
+    initLocation();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  // Fetch restaurants when location is available
   useEffect(() => {
+    let mounted = true;
     if (location && isInitialFetch) {
-      fetchRestaurants();
+      console.log('Location available, fetching initial restaurants');
+      fetchRestaurants(true).then(() => {
+        if (mounted) {
+          console.log('Initial restaurants fetched');
+        }
+      });
     }
+    return () => {
+      mounted = false;
+    };
   }, [location, isInitialFetch, fetchRestaurants]);
+
+  // Debug effect to log state changes
+  useEffect(() => {
+    const currentRestaurant = restaurantsRef.current[currentIndex];
+    console.log('Restaurants state updated:', {
+      count: restaurantsRef.current.length,
+      currentIndex,
+      currentRestaurant,
+      allRestaurants: restaurantsRef.current,
+    });
+  }, [restaurants, currentIndex]);
 
   const refreshRestaurants = useCallback(() => {
     seenRestaurants.clear();
     setCurrentIndex(0);
     setIsInitialFetch(true);
-    fetchRestaurants();
+    fetchRestaurants(true);
   }, [fetchRestaurants]);
 
-  // Debug effect to log state changes
-  useEffect(() => {
-    console.log('Restaurants state updated:', {
-      count: restaurants.length,
+  const currentRestaurant = restaurantsRef.current[currentIndex];
+  if (!currentRestaurant) {
+    console.log('No current restaurant available:', {
       currentIndex,
-      currentRestaurant: restaurants[currentIndex],
-      allRestaurants: restaurants
+      totalRestaurants: restaurantsRef.current.length,
     });
-  }, [restaurants, currentIndex]);
+  }
 
   return {
-    currentRestaurant: restaurants[currentIndex],
+    currentRestaurant,
     loading,
     error,
     nextRestaurant,

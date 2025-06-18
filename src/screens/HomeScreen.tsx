@@ -52,9 +52,26 @@ export function HomeScreen({ navigation }: Props) {
     price: [] as string[],
   });
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const { currentRestaurant, loading, error, nextRestaurant } = useRestaurants(filterParams);
+  const { currentRestaurant, loading, error, nextRestaurant } = useRestaurants({
+    radius: 5000,
+    rating: 3.5,
+    price: ['$', '$$'],
+  });
+
+  const currentRestaurantRef = useRef<Restaurant | null>(null);
   const position = useRef(new Animated.ValueXY()).current;
-  const cardRef = useRef<Animatable.View>(null);
+
+  useEffect(() => {
+    if (currentRestaurant) {
+      console.log('Setting current restaurant:', currentRestaurant.name);
+      currentRestaurantRef.current = currentRestaurant;
+    }
+  }, [currentRestaurant]);
+
+  const handleNextRestaurant = () => {
+    console.log('Calling nextRestaurant');
+    nextRestaurant();
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -63,11 +80,15 @@ export function HomeScreen({ navigation }: Props) {
         position.setValue({ x: gesture.dx, y: gesture.dy });
       },
       onPanResponderRelease: (_, gesture) => {
+        console.log('Pan responder released:', { dx: gesture.dx, threshold: SWIPE_THRESHOLD });
         if (gesture.dx > SWIPE_THRESHOLD) {
+          console.log('Swiping right');
           forceSwipe('right');
         } else if (gesture.dx < -SWIPE_THRESHOLD) {
+          console.log('Swiping left');
           forceSwipe('left');
         } else {
+          console.log('Resetting position');
           resetPosition();
         }
       },
@@ -75,24 +96,36 @@ export function HomeScreen({ navigation }: Props) {
   ).current;
 
   const forceSwipe = (direction: 'left' | 'right') => {
+    console.log('Force swipe called:', direction);
     const x = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
     Animated.timing(position, {
       toValue: { x, y: 0 },
       duration: SWIPE_OUT_DURATION,
       useNativeDriver: false,
-    }).start(() => onSwipeComplete(direction));
+    }).start(() => {
+      console.log('Swipe animation completed');
+      position.setValue({ x: 0, y: 0 });
+      onSwipeComplete(direction);
+    });
   };
 
   const onSwipeComplete = (direction: 'left' | 'right') => {
-    const item = currentRestaurant;
-    direction === 'right' ? addToFavorites(item) : null;
-    position.setValue({ x: 0, y: 0 });
-    nextRestaurant();
+    const restaurant = currentRestaurantRef.current;
+    console.log('Swipe complete:', { direction, currentRestaurant: restaurant });
+    if (restaurant) {
+      if (direction === 'right') {
+        console.log('Adding to favorites:', restaurant.name);
+        addToFavorites(restaurant);
+      }
+      handleNextRestaurant();
+    }
   };
 
   const resetPosition = () => {
+    console.log('Resetting position');
     Animated.spring(position, {
       toValue: { x: 0, y: 0 },
+      friction: 4,
       useNativeDriver: false,
     }).start();
   };
@@ -111,10 +144,20 @@ export function HomeScreen({ navigation }: Props) {
 
   const addToFavorites = async (restaurant: Restaurant) => {
     try {
+      console.log('Attempting to add to favorites:', restaurant);
       const existingFavoritesString = await AsyncStorage.getItem(ENV.STORAGE_KEYS.FAVORITES);
       const existingFavorites = existingFavoritesString ? JSON.parse(existingFavoritesString) : [];
-      const updatedFavorites = [...existingFavorites, restaurant];
-      await AsyncStorage.setItem(ENV.STORAGE_KEYS.FAVORITES, JSON.stringify(updatedFavorites));
+      
+      // Check if restaurant is already in favorites
+      const isAlreadyFavorite = existingFavorites.some((fav: Restaurant) => fav.id === restaurant.id);
+      
+      if (!isAlreadyFavorite) {
+        const updatedFavorites = [...existingFavorites, restaurant];
+        await AsyncStorage.setItem(ENV.STORAGE_KEYS.FAVORITES, JSON.stringify(updatedFavorites));
+        console.log('Successfully added to favorites:', restaurant.name);
+      } else {
+        console.log('Restaurant already in favorites:', restaurant.name);
+      }
     } catch (err) {
       console.error('Error saving to favorites:', err);
     }
@@ -215,27 +258,13 @@ export function HomeScreen({ navigation }: Props) {
   );
 
   const renderCard = () => {
-    if (loading) {
+    const restaurant = currentRestaurantRef.current;
+    if (!restaurant) {
       return (
         <View style={styles.messageContainer}>
-          <ActivityIndicator size="large" color="#ff6b6b" />
-          <Text style={styles.messageText}>Finding restaurants...</Text>
-        </View>
-      );
-    }
-
-    if (error) {
-      return (
-        <View style={styles.messageContainer}>
-          <Text style={styles.messageText}>{error}</Text>
-        </View>
-      );
-    }
-
-    if (!currentRestaurant) {
-      return (
-        <View style={styles.messageContainer}>
-          <Text style={styles.messageText}>No more restaurants found</Text>
+          <Text style={styles.messageText}>
+            {loading ? 'Loading restaurants...' : error || 'No restaurants found'}
+          </Text>
         </View>
       );
     }
@@ -245,34 +274,7 @@ export function HomeScreen({ navigation }: Props) {
         style={[styles.card, getCardStyle()]}
         {...panResponder.panHandlers}
       >
-        <Image
-          source={{ uri: currentRestaurant.image_url }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-        <View style={styles.cardContent}>
-          <Text style={styles.name}>{currentRestaurant.name}</Text>
-          <Text style={styles.subtitle}>
-            {currentRestaurant.categories?.map(cat => cat.title).join(' • ')}
-          </Text>
-          <View style={styles.details}>
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.rating}>
-                {currentRestaurant.rating?.toFixed(1)}
-              </Text>
-            </View>
-            <Text style={styles.price}>
-              {currentRestaurant.price || 'Price not available'}
-            </Text>
-          </View>
-          <Text style={styles.address}>
-            {formatAddress(currentRestaurant.location)}
-          </Text>
-          <Text style={styles.distance}>
-            {currentRestaurant.distance.toFixed(1)} miles away
-          </Text>
-        </View>
+        {renderRestaurantCard(restaurant)}
       </Animated.View>
     );
   };
