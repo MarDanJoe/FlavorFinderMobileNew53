@@ -1,0 +1,112 @@
+{
+  "operator": "Flavor Finder",
+  "supportEmail": "ohlqcommunity@gmail.com",
+  "updated": "September 30, 2026",
+  "privacy": {
+    "title": "Privacy Policy",
+    "intro": "Flavor Finder helps you discover places to eat and choose together with friends. This policy describes the current US service and how we handle information.",
+    "sections": [
+      {
+        "title": "Location and restaurant discovery",
+        "text": "With your permission, we use your device location to find nearby restaurants. You can instead enter a city or ZIP code. Search coordinates and search text pass through our hosted restaurant service to Google Maps Platform. We do not keep a database of your location history. Providers may process request metadata, IP addresses and technical logs for service operation and security."
+      },
+      {
+        "title": "Accounts and saved places",
+        "text": "An account is optional. Supabase processes your email, password, display name and authentication activity for sign-in, confirmation and recovery. Passwords are handled by the authentication provider and are not stored in plaintext by Flavor Finder. Authentication sessions are stored in the iPhone keychain or browser storage. Registered users’ saved Google place IDs and discovery preferences are stored for synchronization. Guest favorites and preferences stay on the device; guests receive an anonymous authentication identity for restaurant requests and group participation."
+      },
+      {
+        "title": "Voting with friends",
+        "text": "Rooms store restaurant IDs, a room code, host and member identities, nicknames, votes, progress and the final aggregate scores and winner. People with the code can join while the lobby is open. Members see nicknames and progress; each person can access their own individual votes. Members see aggregate results after voting ends. Small groups may infer individual preferences from totals. Share room codes only with people you intend to invite."
+      },
+      {
+        "title": "Our service providers",
+        "text": "Google Maps Platform supplies restaurant information, photos and reviews and processes restaurant queries. Supabase hosts authentication, database records and backend functions. Brevo delivers account confirmation and recovery emails and processes sender and recipient addresses, message content and delivery events. Email activity may include open events when a mail client loads an embedded tracking image. These providers process data under their service terms and privacy policies, and may process it outside your state or country."
+      },
+      {
+        "title": "Retention and deletion",
+        "text": "Saved place IDs, preferences and account records remain until you remove them or delete the account. Room access expires after 24 hours. An hourly cleanup normally deletes room records, memberships and votes within 25 hours of room creation; service pauses or scheduling delays can delay physical deletion. Deleting an account removes its synced library, memberships, individual votes and rooms it hosted. Aggregate scores in another host’s completed room remain until room cleanup. Technical logs, backups and email delivery records may remain under provider retention settings or where required for security or legal obligations; immediate erasure from all provider systems is not guaranteed."
+      },
+      {
+        "title": "Your choices and privacy requests",
+        "text": "You can decline location permission and search by city, remove saved places, and use Profile → Delete account to delete a registered account after reauthentication. Clearing app data removes local guest favorites and preferences but does not itself delete hosted guest identities or room records. Contact our support email to request access, correction or deletion of personal information or help with a guest identity; we may need to verify your identity before fulfilling a request. Do not email passwords or verification codes."
+      },
+      {
+        "title": "Advertising, purchases and children",
+        "text": "The current app has no advertising SDK, paid membership, advertising identifier collection or cross-app advertising tracking. If we introduce advertising or payments, we will update the policy and required permissions before enabling them. Flavor Finder is intended for a general audience and is not directed to children under 13. Contact us if you believe a child has provided personal information."
+      },
+      {
+        "title": "Security and policy updates",
+        "text": "We use access controls, encrypted network connections and platform credential storage to protect information. No system can guarantee absolute security. We will update this policy when our practices change and provide any notice required for material changes. Contact Flavor Finder at the support email below for privacy questions."
+      }
+    ],
+    "links": [
+      {
+        "label": "Google Privacy Policy",
+        "url": "https://policies.google.com/privacy"
+      },
+      {
+        "label": "Supabase Privacy Policy",
+        "url": "https://supabase.com/privacy"
+      },
+      {
+        "label": "Brevo Privacy Policy",
+        "url": "https://www.brevo.com/legal/privacypolicy/"
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "intro": "These terms describe use of Flavor Finder’s restaurant discovery and group voting service for the initial US launch.",
+    "sections": [
+      {
+        "title": "Restaurant information",
+        "text": "Flavor Finder includes Google Maps features and content. Use of that content is subject to the Google Maps/Google Earth Additional Terms of Service and Google Privacy Policy linked below. Restaurant hours, ratings, prices, photos and other information may change or be incomplete. Confirm reservations, accessibility, allergens, dietary needs, prices and availability directly with the restaurant. Flavor Finder is not endorsed by Google or by the listed restaurants."
+      },
+      {
+        "title": "Your account and acceptable use",
+        "text": "Use an email address you control and protect your account credentials. Do not impersonate others, share abusive nicknames, scrape or redistribute provider content, circumvent quotas, interfere with the service or access another person’s account or private votes. We may restrict misuse to protect users and service availability."
+      },
+      {
+        "title": "Group voting",
+        "text": "Members swipe the same chosen deck. The restaurant with the most likes wins. Tied leaders receive one shared random pick; if all votes are passes, there is no winner. The host can end voting early. Leaving an unfinished room excludes those votes. Rooms expire after 24 hours. Group results are suggestions, not bookings or guarantees of restaurant availability."
+      },
+      {
+        "title": "Availability and changes",
+        "text": "The current service is free to use. Network failures, provider limits and maintenance may affect availability. Features may change as the app develops. Paid features, if introduced, will be offered separately with pricing and applicable purchase terms. We do not promise uninterrupted service or that restaurant information is always accurate. These terms do not limit rights that cannot be excluded under applicable law."
+      },
+      {
+        "title": "Privacy and support",
+        "text": "Our Privacy Policy explains information handling and deletion choices. You can stop using the service or delete your account through Profile. Contact Flavor Finder using the support email below for questions, privacy requests or account assistance. We will update these terms as needed and provide any notice required for material changes."
+      }
+    ],
+    "links": [
+      {
+        "label": "Google Maps/Google Earth Additional Terms of Service",
+        "url": "https://maps.google.com/help/terms_maps/"
+      },
+      {
+        "label": "Google Privacy Policy",
+        "url": "https://policies.google.com/privacy"
+      }
+    ]
+  },
+  "support": {
+    "title": "Support",
+    "intro": "Contact Flavor Finder for account help, privacy requests or problems using the app.",
+    "sections": [
+      {
+        "title": "Getting help",
+        "text": "Email the support address below with your app version, iOS version, what happened and the steps leading to the issue. Never include a password, verification code, API key or payment credential."
+      },
+      {
+        "title": "Location and restaurant results",
+        "text": "If location permission is unavailable, choose a city or ZIP code instead. Check your connection when restaurant information cannot refresh. Google Maps photos and reviews include links to their original content where supplied; use those links to report provider content."
+      },
+      {
+        "title": "Recovery and deletion",
+        "text": "Use Forgot password on the sign-in screen to request a recovery code. Use Profile → Delete account to delete a registered account after reauthentication. Email support if you cannot access the account or need help with data deletion."
+      }
+    ],
+    "links": []
+  }
+}

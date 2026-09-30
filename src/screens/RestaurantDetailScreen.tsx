@@ -1,309 +1,425 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
-  Text,
-  StyleSheet,
-  ScrollView,
   Image,
+  Text,
+  ScrollView,
   TouchableOpacity,
   Linking,
   ActivityIndicator,
-} from 'react-native';
-import { RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { getPlaceDetails, getRestaurantById } from '../services/api';
-import { Restaurant } from '../hooks/useRestaurants';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import { searchRestaurants } from '../services/api';
-
-type RestaurantDetailScreenRouteProp = RouteProp<RootStackParamList, 'RestaurantDetail'>;
-type RestaurantDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'RestaurantDetail'>;
-
+  StyleSheet,
+  Share,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
+import { getRestaurantById } from "../services/api";
+import type { Restaurant } from "../hooks/useRestaurants";
+import { useLibrary } from "../contexts/LibraryContext";
+import { GoogleAttribution } from "../components/GoogleAttribution";
+import { RestaurantImage } from "../components/RestaurantImage";
+import { DEMO_MODE } from "../config/demo";
+import { colors, layout } from "../theme";
 type Props = {
-  route: RestaurantDetailScreenRouteProp;
-  navigation: RestaurantDetailScreenNavigationProp;
+  route: RouteProp<RootStackParamList, "RestaurantDetail">;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
 };
-
-type PlaceDetails = {
-  formatted_phone_number?: string;
-  website?: string;
-  opening_hours?: {
-    open_now: boolean;
-    weekday_text: string[];
-  };
-  reviews?: Array<{
-    author_name: string;
-    rating: number;
-    relative_time_description: string;
-    text: string;
-  }>;
-};
-
-export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
+  const library = useLibrary();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [details, setDetails] = useState<PlaceDetails | null>(null);
+  const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
-    const fetchRestaurantData = async () => {
-      try {
-        const [placeDetails, restaurantData] = await Promise.all([
-          getPlaceDetails(id),
-          getRestaurantById(id)
-        ]);
-        
-        setRestaurant(restaurantData);
-        setDetails(placeDetails);
-      } catch (err) {
-        console.error('Error loading restaurant details:', err);
-        setError('Failed to load restaurant details');
-      } finally {
-        setLoading(false);
-      }
+    let active = true;
+    setLoading(true);
+    setError("");
+    getRestaurantById(id)
+      .then((r) => {
+        if (active) {
+          setRestaurant(r);
+          setDetails(r);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          const cached = library.favorites.find((r) => r.id === id);
+          if (cached) {
+            setRestaurant(cached);
+            setDetails(null);
+            setMessage(
+              "Connect to refresh this saved place. Hours and reviews are unavailable.",
+            );
+          } else
+            setError(
+              err instanceof Error ? err.message : "Unable to load this place.",
+            );
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
     };
-
-    fetchRestaurantData();
-  }, [id]);
-
-  const handleCall = () => {
-    if (details?.formatted_phone_number) {
-      Linking.openURL(`tel:${details.formatted_phone_number}`);
+  }, [id, attempt]);
+  const saved = library.favorites.some((r) => r.id === id);
+  const openLink = async (url: string) => {
+    try {
+      if (!/^(https?:\/\/|tel:)/i.test(url)) throw new Error();
+      await Linking.openURL(url);
+    } catch {
+      setMessage("This link could not be opened on your device.");
     }
   };
-
-  const handleWebsite = () => {
-    if (details?.website) {
-      Linking.openURL(details.website);
+  const toggleSaved = async () => {
+    if (!restaurant || saving) return;
+    setSaving(true);
+    try {
+      if (saved) await library.remove(id);
+      else await library.save(restaurant);
+      setMessage(
+        saved
+          ? "Removed from your saved places."
+          : "A good find, saved for later.",
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Unable to save.");
+    } finally {
+      setSaving(false);
     }
   };
-
-  const handleDirections = () => {
-    const { latitude, longitude } = restaurant?.coordinates || { latitude: 0, longitude: 0 };
-    Linking.openURL(
-      `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
-    );
-  };
-
-  if (loading || !restaurant) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container}>
-      <Image source={{ uri: restaurant.image_url }} style={styles.image} />
-      
-      <View style={styles.content}>
-        <Text style={styles.name}>{restaurant.name}</Text>
-        
-        <View style={styles.ratingContainer}>
-          <Icon name="star" size={24} color="#FFD700" />
-          <Text style={styles.rating}>{restaurant.rating.toFixed(1)}</Text>
-          <Text style={styles.price}>{restaurant.price}</Text>
-        </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.address}>{restaurant.location.address1}</Text>
-          <Text style={styles.distance}>{restaurant.distance.toFixed(1)} miles away</Text>
-        </View>
-
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.button} onPress={handleCall}>
-            <Icon name="call" size={24} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Call</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.button} onPress={handleWebsite}>
-            <Icon name="globe" size={24} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Website</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.button} onPress={handleDirections}>
-            <Icon name="navigate" size={24} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Directions</Text>
-          </TouchableOpacity>
-        </View>
-
-        {details?.opening_hours && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hours</Text>
-            <Text style={styles.hoursStatus}>
-              {details.opening_hours.open_now ? 'Open Now' : 'Closed'}
-            </Text>
-            {details.opening_hours.weekday_text?.map((day, index) => (
-              <Text key={index} style={styles.hoursText}>{day}</Text>
-            ))}
-          </View>
-        )}
-
-        {details?.reviews && details.reviews.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reviews</Text>
-            {details.reviews.map((review, index) => (
-              <View key={index} style={styles.reviewContainer}>
-                <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewAuthor}>{review.author_name}</Text>
-                  <View style={styles.reviewRating}>
-                    <Icon name="star" size={16} color="#FFD700" />
-                    <Text style={styles.reviewRatingText}>{review.rating}</Text>
-                  </View>
-                </View>
-                <Text style={styles.reviewTime}>{review.relative_time_description}</Text>
-                <Text style={styles.reviewText}>{review.text}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+    <SafeAreaView style={layout.screen} edges={["top", "left", "right"]}>
+      <View
+        style={[
+          layout.content,
+          layout.row,
+          { justifyContent: "space-between", paddingVertical: 16 },
+        ]}
+      >
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Back to discoveries"
+          onPress={() => navigation.goBack()}
+          style={styles.round}
+        >
+          <Ionicons name="arrow-back" color={colors.ink} size={22} />
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>A closer look</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Share restaurant"
+          disabled={!restaurant || DEMO_MODE}
+          style={[styles.round, DEMO_MODE && { opacity: 0.3 }]}
+          onPress={() =>
+            restaurant &&
+            Share.share({
+              message: `${restaurant.name} — ${restaurant.location.address1}\nhttps://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${encodeURIComponent(id)}`,
+            }).catch(() => setMessage("Sharing is unavailable on this device."))
+          }
+        >
+          <Ionicons name="share-outline" size={21} color={colors.ink} />
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[layout.subtitle, { marginTop: 14 }]}>
+            Getting to know this place…
+          </Text>
+        </View>
+      ) : error || !restaurant ? (
+        <View style={styles.center}>
+          <Ionicons
+            name="cloud-offline-outline"
+            size={40}
+            color={colors.accent}
+          />
+          <Text style={[layout.title, { fontSize: 24, marginTop: 16 }]}>
+            Let’s try that again.
+          </Text>
+          <Text style={[layout.subtitle, { textAlign: "center", margin: 18 }]}>
+            {error || "This restaurant is unavailable."}
+          </Text>
+          <TouchableOpacity
+            style={layout.primary}
+            onPress={() => setAttempt((a) => a + 1)}
+          >
+            <Text style={layout.primaryText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={[layout.content, { paddingBottom: 36 }]}
+        >
+          <RestaurantImage
+            uri={restaurant.image_url}
+            style={{ height: 260, borderRadius: 26 }}
+          />
+          {!DEMO_MODE && (
+            <GoogleAttribution
+              authors={restaurant?.photo_attributions}
+              providers={restaurant?.provider_attributions}
+              photoSource={restaurant?.photo_source_uri}
+            />
+          )}
+          <View
+            style={[layout.row, { marginTop: 22, marginBottom: 10, gap: 8 }]}
+          >
+            <Text style={styles.rating}>★ {restaurant.rating.toFixed(1)}</Text>
+            <Text style={layout.subtitle}>
+              {restaurant.price || "Price unavailable"}
+            </Text>
+            {details?.opening_hours?.open_now !== undefined && (
+              <Text style={[styles.status, { marginLeft: "auto" }]}>
+                {details.opening_hours.open_now ? "● Open now" : "Closed now"}
+              </Text>
+            )}
+          </View>
+          <Text style={layout.title}>{restaurant.name}</Text>
+          <Text style={[layout.subtitle, { marginTop: 10 }]}>
+            {restaurant.location.address1}
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              saved ? "Remove from saved places" : "Save this restaurant"
+            }
+            disabled={saving || !library.ready}
+            style={[
+              layout.primary,
+              {
+                backgroundColor: saved ? colors.green : colors.accent,
+                marginTop: 24,
+                flexDirection: "row",
+                gap: 9,
+              },
+            ]}
+            onPress={toggleSaved}
+          >
+            <Ionicons
+              name={saved ? "heart" : "heart-outline"}
+              size={20}
+              color="#fff"
+            />
+            <Text style={layout.primaryText}>
+              {saving
+                ? "Saving…"
+                : saved
+                  ? "Saved to your places"
+                  : "Save for a delicious day"}
+            </Text>
+          </TouchableOpacity>
+          {!!message && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{
+                fontSize: 12,
+                color: colors.green,
+                textAlign: "center",
+                marginTop: 12,
+              }}
+            >
+              {message}
+            </Text>
+          )}
+          <View style={styles.links}>
+            {[
+              {
+                name: "navigate-outline" as const,
+                title: "Directions",
+                enabled: !DEMO_MODE,
+                action: () =>
+                  openLink(
+                    `https://www.google.com/maps/dir/?api=1&destination=${restaurant.coordinates.latitude},${restaurant.coordinates.longitude}&destination_place_id=${encodeURIComponent(id)}`,
+                  ),
+              },
+              {
+                name: "call-outline" as const,
+                title: "Call",
+                enabled: !!details?.formatted_phone_number && !DEMO_MODE,
+                action: () => openLink(`tel:${details.formatted_phone_number}`),
+              },
+              {
+                name: "globe-outline" as const,
+                title: "Website",
+                enabled: !!details?.website && !DEMO_MODE,
+                action: () => openLink(details.website),
+              },
+            ].map((action) => (
+              <TouchableOpacity
+                key={action.title}
+                accessibilityRole="button"
+                accessibilityLabel={action.title}
+                disabled={!action.enabled}
+                onPress={action.action}
+                style={[styles.link, !action.enabled && { opacity: 0.35 }]}
+              >
+                <Ionicons name={action.name} size={22} color={colors.green} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.ink,
+                    marginTop: 9,
+                    fontWeight: "600",
+                  }}
+                >
+                  {action.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {DEMO_MODE && (
+            <Text style={[layout.subtitle, { fontSize: 11, marginBottom: 18 }]}>
+              This is a sample place. Contact and directions are available for
+              real restaurants.
+            </Text>
+          )}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Good to know</Text>
+            <Text style={[layout.subtitle, { marginTop: 12 }]}>
+              {" "}
+              {restaurant.categories
+                .filter(
+                  (c: any) =>
+                    ![
+                      "point_of_interest",
+                      "establishment",
+                      "food",
+                      "restaurant",
+                    ].includes(c.alias),
+                )
+                .map((c: any) => c.title)
+                .join(" · ") || "Restaurant"}
+            </Text>
+          </View>
+          {!!details?.opening_hours?.weekday_text?.length && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>When to drop by</Text>
+              {details.opening_hours.weekday_text.map((day: string) => (
+                <Text key={day} style={[layout.subtitle, { marginTop: 10 }]}>
+                  {day}
+                </Text>
+              ))}
+            </View>
+          )}
+          {!!details?.reviews?.length && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>What people are saying</Text>
+              <Text
+                style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}
+              >
+                Reviews selected by Google Maps, ordered by relevance.
+              </Text>
+              {details.reviews.map((review: any, index: number) => (
+                <View key={index} style={styles.review}>
+                  <View
+                    style={[layout.row, { justifyContent: "space-between" }]}
+                  >
+                    <TouchableOpacity
+                      disabled={!review.author_url}
+                      onPress={() =>
+                        review.author_url && void openLink(review.author_url)
+                      }
+                    >
+                      {!!review.author_photo && (
+                        <Image
+                          source={{ uri: review.author_photo }}
+                          style={{ width: 32, height: 32, borderRadius: 16 }}
+                        />
+                      )}
+                      <Text style={{ color: colors.ink, fontWeight: "700" }}>
+                        {review.author_name}
+                      </Text>
+                    </TouchableOpacity>
+                    {!!review.source_uri && (
+                      <TouchableOpacity
+                        onPress={() => void openLink(review.source_uri)}
+                      >
+                        <Text style={{ color: colors.green, fontSize: 12 }}>
+                          View review on Google Maps
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    <Text style={styles.rating}>★ {review.rating}</Text>
+                  </View>
+                  <Text
+                    style={[layout.subtitle, { fontSize: 11, marginTop: 5 }]}
+                  >
+                    {review.relative_time_description}
+                    {review.visit_date?.month && review.visit_date?.year
+                      ? ` · Visited ${new Date(review.visit_date.year, review.visit_date.month - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`
+                      : ""}
+                  </Text>
+                  <Text
+                    style={[
+                      layout.subtitle,
+                      { marginTop: 12, color: colors.ink },
+                    ]}
+                  >
+                    {review.text}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      )}
+    </SafeAreaView>
   );
-};
-
+}
 const styles = StyleSheet.create({
-  container: {
+  round: {
+    width: 43,
+    height: 43,
+    borderRadius: 15,
+    backgroundColor: colors.paper,
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
+  topTitle: { fontSize: 13, color: colors.ink, fontWeight: "600" },
+  center: {
     flex: 1,
-    backgroundColor: '#fff',
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
   },
-  loadingContainer: {
+  rating: { fontSize: 14, color: colors.accent, fontWeight: "700" },
+  status: { fontSize: 11, color: colors.green, fontWeight: "600" },
+  links: { flexDirection: "row", gap: 12, marginVertical: 22 },
+  link: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: '#FF6B6B',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  image: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'cover',
-  },
-  content: {
-    padding: 20,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  rating: {
-    fontSize: 18,
-    color: '#666',
-    marginLeft: 8,
-    marginRight: 15,
-  },
-  price: {
-    fontSize: 18,
-    color: '#666',
-  },
-  infoSection: {
-    marginBottom: 20,
-  },
-  address: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-  distance: {
-    fontSize: 16,
-    color: '#666',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 30,
-    paddingVertical: 15,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
-  },
-  button: {
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#FF6B6B',
-    marginTop: 5,
-    fontSize: 14,
+    backgroundColor: colors.paper,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 20,
+    alignItems: "center",
   },
   section: {
-    marginBottom: 25,
+    paddingVertical: 22,
+    borderTopWidth: 1,
+    borderColor: colors.border,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    fontSize: 21,
+    fontWeight: "700",
+    color: colors.ink,
+    letterSpacing: -0.5,
   },
-  hoursStatus: {
-    fontSize: 16,
-    color: '#4CAF50',
-    marginBottom: 10,
+  review: {
+    backgroundColor: colors.paper,
+    padding: 18,
+    borderRadius: 18,
+    marginTop: 16,
   },
-  hoursText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  reviewContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  reviewAuthor: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  reviewRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  reviewRatingText: {
-    marginLeft: 5,
-    color: '#666',
-  },
-  reviewTime: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 8,
-  },
-  reviewText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-}); 
+});

@@ -1,29 +1,46 @@
 {
   "expo": {
-    "name": "FlavorFinderMobileNew53",
-    "slug": "FlavorFinderMobileNew53",
+    "name": "Flavor Finder",
+    "slug": "flavor-finder",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand-icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+      }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/brand-favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Flavor Finder uses your location to find restaurants near you."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand-splash.png",
+          "imageWidth": 200,
+          "backgroundColor": "#F8F6F0"
+        }
+      ]
+    ],
+    "scheme": "flavorfinder",
+    "owner": "ambrose-industries",
+    "extra": {
+      "eas": {
+        "projectId": "383708a5-bd04-4f34-bc6e-b380b247cdec"
+      }
     }
   }
 }

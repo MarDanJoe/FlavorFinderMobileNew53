@@ -95,3 +95,11 @@ yarn-error.log
 .env
 .env.*
 !.env.example
+
+# Local exports and visual verification
+dist-native/
+dist-web/
+verification/
+
+# Release validation exports
+dist-release/

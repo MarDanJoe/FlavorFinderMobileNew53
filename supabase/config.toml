@@ -1,0 +1,19 @@
+project_id = "flavor-finder"
+
+[functions.places]
+# The handler validates the token against Auth, supporting current publishable keys.
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[auth.email]
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your Flavor Finder email"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Flavor Finder password"
+content_path = "./supabase/templates/recovery.html"

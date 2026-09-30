@@ -3,35 +3,59 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.cjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "demo": "EXPO_PUBLIC_DEMO_MODE=true expo start --web",
+    "places": "node server/places.cjs",
+    "format": "prettier --write src App.tsx App.js index.js server tests scripts supabase/functions app.config.cjs app.json eas.json",
+    "format:check": "prettier --check src App.tsx App.js index.js server tests scripts supabase/functions app.config.cjs app.json eas.json",
+    "release:check": "node scripts/release-check.cjs",
+    "legal:build": "node scripts/build-legal-pages.cjs"
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@expo/metro-runtime": "~57.0.16",
+    "@expo/vector-icons": "^15.0.2",
+    "@noble/hashes": "^1.8.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.3.14",
     "@react-navigation/native": "^7.1.10",
     "@react-navigation/native-stack": "^7.3.16",
-    "axios": "^1.9.0",
-    "expo": "~53.0.9",
-    "expo-location": "^18.1.5",
-    "expo-notifications": "^0.31.2",
-    "expo-status-bar": "~2.2.3",
-    "react": "19.0.0",
-    "react-native": "0.79.2",
-    "react-native-animatable": "^1.4.0",
-    "react-native-gesture-handler": "^2.25.0",
-    "react-native-reanimated": "^3.18.0",
-    "react-native-safe-area-context": "^5.4.1",
-    "react-native-screens": "^4.11.1",
-    "react-native-vector-icons": "^10.2.0"
+    "@supabase/supabase-js": "^2.117.2",
+    "expo": "^57.0.26",
+    "expo-asset": "~57.0.18",
+    "expo-crypto": "~57.0.3",
+    "expo-location": "~57.0.20",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "~0.21.0",
+    "expo-font": "~57.0.4",
+    "expo-splash-screen": "~57.0.9",
+    "expo-dev-client": "~57.0.19"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@types/react": "~19.0.10",
-    "typescript": "~5.8.3"
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/react": "~19.2.0",
+    "prettier": "^3.6.2",
+    "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    }
+  }
 }

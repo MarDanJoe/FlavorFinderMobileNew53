@@ -1,23 +1,7 @@
-import { ENV } from '../config/env';
-
-// Get details for a single restaurant
-export const getPlaceDetails = async (placeId: string) => {
-  try {
-    const response = await fetch(
-      `${ENV.API.BASE_URL}/details/json?place_id=${placeId}&key=${ENV.API.KEY}&fields=formatted_phone_number,website,opening_hours,reviews,user_ratings_total`
-    );
-    const data = await response.json();
-
-    if (data.status !== 'OK') {
-      throw new Error(data.error_message || 'Failed to fetch place details');
-    }
-
-    return data.result;
-  } catch (error) {
-    console.error('Error fetching place details:', error);
-    throw error;
-  }
-};
+import { placesFetch } from "./supabase";
+import { DEMO_MODE } from "../config/demo";
+import { demoPlaces, demoRestaurant } from "../config/demoData";
+import { ENV } from "../config/env";
 
 // Restaurant search function using Google Places API
 export const searchRestaurants = async (params: {
@@ -26,21 +10,32 @@ export const searchRestaurants = async (params: {
   radius: number;
   pageSize: number;
   pageToken?: string;
+  keyword?: string;
+  openNow?: boolean;
 }) => {
   try {
+    if (DEMO_MODE)
+      return {
+        results: demoPlaces.filter(
+          (place) =>
+            !params.keyword ||
+            place.types
+              .join(" ")
+              .toLowerCase()
+              .includes(params.keyword.toLowerCase()),
+        ),
+        nextPageToken: undefined,
+      };
     const { latitude, longitude, radius, pageSize, pageToken } = params;
     const location = `${latitude},${longitude}`;
-    const type = 'restaurant';
-    
-    const url = `${ENV.API.BASE_URL}/nearbysearch/json?location=${location}&radius=${radius}&type=${type}&key=${ENV.API.KEY}${pageToken ? `&pagetoken=${pageToken}` : ''}`;
-    
-    console.log('Searching restaurants with URL:', url);
-    
-    const response = await fetch(url);
-    const data = await response.json();
+    const type = "restaurant";
 
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      throw new Error(data.error_message || 'Failed to fetch restaurants');
+    const url = `${ENV.API.BASE_URL}/nearbysearch/json?location=${location}&radius=${radius}&type=${type}${pageToken ? `&pagetoken=${encodeURIComponent(pageToken)}` : ""}${params.keyword ? `&keyword=${encodeURIComponent(params.keyword)}` : ""}${params.openNow ? "&opennow=true" : ""}`;
+
+    const data = await placesFetch(url.replace(`${ENV.API.BASE_URL}/`, ""));
+
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      throw new Error(data.error_message || "Failed to fetch restaurants");
     }
 
     return {
@@ -48,37 +43,22 @@ export const searchRestaurants = async (params: {
       nextPageToken: data.next_page_token,
     };
   } catch (error) {
-    console.error('Error searching restaurants:', error);
     throw error;
   }
 };
 
-// Helper function to calculate distance between two points in miles
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3959; // Radius of the earth in miles (instead of 6371 km)
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function deg2rad(deg: number): number {
-  return deg * (Math.PI / 180);
-}
-
 // Get a single restaurant by ID
-export const getRestaurantById = async (placeId: string) => {
+export const getRestaurantById = async (placeId: string, basic = false) => {
+  if (DEMO_MODE) return demoRestaurant(placeId);
   try {
-    const response = await fetch(
-      `${ENV.API.BASE_URL}/details/json?place_id=${placeId}&key=${ENV.API.KEY}&fields=name,formatted_phone_number,formatted_address,opening_hours,photos,reviews,price_level,rating,website,geometry,types`
+    const data = await placesFetch(
+      `details/json?place_id=${encodeURIComponent(placeId)}&fields=${basic ? "name,formatted_address,photos,rating,geometry,types,price_level" : "name,formatted_phone_number,formatted_address,opening_hours,photos,reviews,price_level,rating,website,geometry,types"}`,
     );
-    const data = await response.json();
 
-    if (data.status !== 'OK') {
-      throw new Error(data.error_message || 'Failed to fetch restaurant details');
+    if (data.status !== "OK") {
+      throw new Error(
+        data.error_message || "Failed to fetch restaurant details",
+      );
     }
 
     const place = data.result;
@@ -86,19 +66,26 @@ export const getRestaurantById = async (placeId: string) => {
       id: placeId,
       name: place.name,
       image_url: place.photos?.[0]
-        ? `${ENV.API.BASE_URL}/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=${ENV.API.KEY}`
-        : 'https://via.placeholder.com/400x300?text=No+Image',
+        ? `${ENV.API.BASE_URL}/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}`
+        : "",
+      provider_attributions: place.provider_attributions ?? [],
+      photo_source_uri: place.photos?.[0]?.source_uri,
+      photo_attributions: place.photos?.[0]?.author_attributions ?? [],
       rating: place.rating || 0,
-      price: place.price_level ? '$'.repeat(place.price_level) : undefined,
-      categories: place.types?.map((type: string) => ({
-        alias: type,
-        title: type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-      })) || [],
+      price: place.price_level ? "$".repeat(place.price_level) : undefined,
+      categories:
+        place.types?.map((type: string) => ({
+          alias: type,
+          title: type
+            .split("_")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
+        })) || [],
       location: {
         address1: place.formatted_address,
-        city: '',
-        state: '',
-        zip_code: '',
+        city: "",
+        state: "",
+        zip_code: "",
       },
       coordinates: {
         latitude: place.geometry.location.lat,
@@ -111,44 +98,20 @@ export const getRestaurantById = async (placeId: string) => {
       reviews: place.reviews,
     };
   } catch (error) {
-    console.error('Error fetching restaurant by ID:', error);
     throw error;
   }
 };
 
-// Get restaurant details
-export const getRestaurantDetails = async (placeId: string) => {
-  try {
-    const response = await fetch(
-      `${ENV.API.BASE_URL}/details/json?place_id=${placeId}&key=${ENV.API.KEY}&fields=name,formatted_phone_number,formatted_address,opening_hours,photos,reviews,price_level,rating,website`
-    );
-
-    if (response.status !== 200) {
-      throw new Error('Failed to fetch restaurant details');
-    }
-
-    const data = await response.json();
-    if (data.status !== 'OK') {
-      throw new Error(data.error_message || 'Failed to fetch restaurant details');
-    }
-
-    const place = data.result;
-    return {
-      id: place.place_id,
-      name: place.name,
-      phone: place.formatted_phone_number,
-      address: place.formatted_address,
-      opening_hours: place.opening_hours,
-      photos: place.photos?.map((photo: any) => ({
-        url: `${ENV.API.BASE_URL}/photo?maxwidth=800&photoreference=${photo.photo_reference}&key=${ENV.API.KEY}`,
-      })),
-      reviews: place.reviews,
-      price_level: place.price_level,
-      rating: place.rating,
-      website: place.website,
-    };
-  } catch (error) {
-    console.error('Error getting restaurant details:', error);
-    throw error;
-  }
-}; 
+export async function findSearchLocation(query: string) {
+  const data = await placesFetch(
+    `location/json?query=${encodeURIComponent(query.trim())}`,
+  );
+  if (!data.result?.location)
+    throw new Error("No location found. Try a city and state or ZIP code.");
+  return {
+    latitude: data.result.location.latitude as number,
+    longitude: data.result.location.longitude as number,
+    label:
+      data.result.formattedAddress || data.result.displayName?.text || query,
+  };
+}

@@ -1,19 +1,27 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import * as Location from 'expo-location';
-import { searchRestaurants } from '../services/api';
-import { ENV } from '../config/env';
+import { DEMO_MODE } from "../config/demo";
+import { useState, useEffect, useCallback, useRef } from "react";
+import * as Location from "expo-location";
+import { searchRestaurants } from "../services/api";
+import { ENV } from "../config/env";
 
 // Helper function to calculate distance between two points using Haversine formula
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371; // Radius of the earth in km
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
+  const R = 3959; // Radius of the earth in miles
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c; // Distance in km
+  const d = R * c; // Distance in miles
   return d;
 };
 
@@ -22,6 +30,14 @@ const deg2rad = (deg: number): number => {
 };
 
 export interface Restaurant {
+  provider_attributions?: Array<{ provider: string; providerUri?: string }>;
+  photo_source_uri?: string;
+  photo_attributions?: Array<{
+    displayName: string;
+    uri?: string;
+    photoUri?: string;
+    sourceUri?: string;
+  }>;
   id: string;
   name: string;
   image_url: string;
@@ -45,251 +61,260 @@ export interface Restaurant {
 }
 
 interface UseRestaurantsParams {
+  searchLocation?: { latitude: number; longitude: number };
   radius?: number;
   rating?: number;
   price?: string[];
+  cuisine?: string;
+  openNow?: boolean;
 }
 
 export const useRestaurants = (params?: UseRestaurantsParams) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const restaurantsRef = useRef<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [nextPageToken, setNextPageToken] = useState<string | undefined>();
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [seenRestaurants] = useState(new Set<string>());
-  const [isInitialFetch, setIsInitialFetch] = useState(true);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null,
+  );
+  const [locationRetry, setLocationRetry] = useState(0);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const nextPageToken = useRef<string | undefined>(undefined);
+  const seen = useRef(new Set<string>());
+  const generation = useRef(0);
+  const fetching = useRef(false);
+  const radius = params?.radius ?? ENV.DEFAULTS.SEARCH_RADIUS;
+  const rating = params?.rating ?? 0;
+  const cuisine = params?.cuisine ?? "";
+  const openNow = params?.openNow ?? false;
+  const prices = JSON.stringify(params?.price ?? []);
 
-  // Filter out duplicates and already seen restaurants
-  const filterNewRestaurants = useCallback((newRestaurants: Restaurant[]) => {
-    return newRestaurants.filter(restaurant => {
-      // Skip if already seen
-      if (seenRestaurants.has(restaurant.id)) {
-        return false;
-      }
-
-      // Apply rating filter
-      if (params?.rating && restaurant.rating < params.rating) {
-        return false;
-      }
-
-      // Apply price filter
-      if (params?.price && params.price.length > 0) {
-        if (!restaurant.price || !params.price.includes(restaurant.price)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [seenRestaurants, params?.rating, params?.price]);
-
-  const fetchRestaurants = useCallback(async (isFirstPage: boolean = true) => {
-    try {
-      if (!location) {
-        console.log('No user location available');
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      console.log('Fetching restaurants:', {
-        currentCount: restaurantsRef.current.length,
-        filters: params,
-        isFirstPage,
-        isInitialFetch,
-        pageToken: isFirstPage ? undefined : nextPageToken,
-      });
-
-      const { results, nextPageToken: newPageToken } = await searchRestaurants({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        radius: params?.radius || ENV.DEFAULTS.SEARCH_RADIUS,
-        pageSize: ENV.DEFAULTS.RESULTS_LIMIT,
-        pageToken: isFirstPage ? undefined : nextPageToken,
-      });
-
-      console.log('Search results:', {
-        count: results.length,
-        hasNextPage: !!newPageToken,
-      });
-
-      if (!results || results.length === 0) {
-        setError('No restaurants found in your area. Try adjusting your filters.');
-        setLoading(false);
-        return;
-      }
-
-      // Transform the results into our restaurant format
-      const newRestaurants = results.map((place: any) => ({
-        id: place.place_id,
-        name: place.name,
-        image_url: place.photos?.[0]
-          ? `${ENV.API.BASE_URL}/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=${ENV.API.KEY}`
-          : 'https://via.placeholder.com/400x300?text=No+Image',
-        rating: place.rating || 0,
-        price: place.price_level ? '$'.repeat(place.price_level) : undefined,
-        location: {
-          address1: place.vicinity,
-          city: '',
-          state: '',
-          zip_code: '',
-        },
-        coordinates: {
-          latitude: place.geometry.location.lat,
-          longitude: place.geometry.location.lng,
-        },
-        distance: calculateDistance(
-          location.coords.latitude,
-          location.coords.longitude,
-          place.geometry.location.lat,
-          place.geometry.location.lng
-        ),
-      }));
-
-      // Filter out duplicates and apply filters
-      const filteredNewRestaurants = filterNewRestaurants(newRestaurants);
-
-      if (filteredNewRestaurants.length === 0) {
-        if (!isInitialFetch) {
-          setError('No restaurants found in your area. Try adjusting your filters.');
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Add new restaurants to seen set
-      filteredNewRestaurants.forEach(r => seenRestaurants.add(r.id));
-
-      const updated = isFirstPage ? filteredNewRestaurants : [...restaurantsRef.current, ...filteredNewRestaurants];
-      restaurantsRef.current = updated;
-      setRestaurants(updated);
-
-      console.log('Restaurants state updated:', {
-        count: updated.length,
-        currentIndex,
-        currentRestaurant: updated[currentIndex],
-        allRestaurants: updated,
-      });
-
-      setNextPageToken(newPageToken);
-      setIsInitialFetch(false);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching restaurants:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch restaurants');
-      setLoading(false);
-    }
-  }, [location, params, currentIndex, isInitialFetch, nextPageToken, filterNewRestaurants]);
-
-  const nextRestaurant = useCallback(() => {
-    console.log('Next restaurant requested:', {
-      currentIndex,
-      totalRestaurants: restaurantsRef.current.length,
-      hasNextPage: !!nextPageToken,
-      isFetchingMore,
-      currentRestaurant: restaurantsRef.current[currentIndex],
-      allRestaurants: restaurantsRef.current,
-    });
-
-    if (currentIndex < restaurantsRef.current.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else if (nextPageToken && !isFetchingMore) {
-      setIsFetchingMore(true);
-      fetchRestaurants(false).finally(() => {
-        setIsFetchingMore(false);
-      });
-    } else if (!nextPageToken && restaurantsRef.current.length > 0) {
-      // If we've gone through all restaurants, fetch a new batch
-      seenRestaurants.clear();
-      setCurrentIndex(0);
-      fetchRestaurants(true);
-    }
-  }, [currentIndex, nextPageToken, isFetchingMore, fetchRestaurants]);
-
-  // Initialize location and restaurants
   useEffect(() => {
-    let mounted = true;
-    const initLocation = async () => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setError('Permission to access location was denied');
+        if (params?.searchLocation) {
+          if (active)
+            setLocation({
+              coords: params.searchLocation,
+            } as Location.LocationObject);
           return;
         }
-
-        const location = await Location.getCurrentPositionAsync({});
-        if (mounted) {
-          console.log('Got initial location:', {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          });
-          setLocation(location);
+        if (DEMO_MODE) {
+          if (active)
+            setLocation({
+              coords: { latitude: 40.7128, longitude: -74.006 },
+            } as Location.LocationObject);
+          return;
         }
+        let locationTimer: ReturnType<typeof setTimeout> | undefined;
+        let position: Location.LocationObject;
+        try {
+          position = await Promise.race([
+            (async () => {
+              const { status } =
+                await Location.requestForegroundPermissionsAsync();
+              if (status !== "granted")
+                throw new Error(
+                  "Location access was denied. Choose a city to find restaurants.",
+                );
+              if (!active) throw new Error("Location request cancelled.");
+              return Location.getCurrentPositionAsync({});
+            })(),
+            new Promise<never>((_, reject) => {
+              locationTimer = setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      "Location access is taking too long. Choose a city or ZIP code above to find restaurants.",
+                    ),
+                  ),
+                20000,
+              );
+            }),
+          ]);
+        } finally {
+          if (locationTimer) clearTimeout(locationTimer);
+        }
+        if (active) setLocation(position);
       } catch (err) {
-        if (mounted) {
-          setError('Error getting location. Please make sure location services are enabled.');
-          console.error('Error getting location:', err);
+        if (active) {
+          setError(
+            err instanceof Error ? err.message : "Unable to get your location",
+          );
+          setLoading(false);
         }
       }
-    };
-
-    initLocation();
+    })();
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, []);
+  }, [
+    locationRetry,
+    params?.searchLocation?.latitude,
+    params?.searchLocation?.longitude,
+  ]);
 
-  // Fetch restaurants when location is available
-  useEffect(() => {
-    let mounted = true;
-    if (location && isInitialFetch) {
-      console.log('Location available, fetching initial restaurants');
-      fetchRestaurants(true).then(() => {
-        if (mounted) {
-          console.log('Initial restaurants fetched');
+  const fetchPage = useCallback(
+    async (firstPage: boolean, requestGeneration: number) => {
+      if (!location || fetching.current) return;
+      fetching.current = true;
+      setLoading(true);
+      setError(null);
+      try {
+        let token = firstPage ? undefined : nextPageToken.current;
+        const selectedPrices: string[] = JSON.parse(prices);
+        // Continue through pages whose restaurants are all excluded by filters.
+        do {
+          if (token) await new Promise((resolve) => setTimeout(resolve, 2000));
+          if (requestGeneration !== generation.current) return;
+          const page = await searchRestaurants({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            radius,
+            pageSize: ENV.DEFAULTS.RESULTS_LIMIT,
+            pageToken: token,
+            keyword: cuisine,
+            openNow,
+          });
+          if (requestGeneration !== generation.current) return;
+          token = page.nextPageToken;
+          nextPageToken.current = token;
+          const batch: Restaurant[] = page.results
+            .map(
+              (place: any): Restaurant => ({
+                id: place.place_id,
+                name: place.name,
+                image_url:
+                  place.image_url ||
+                  (place.photos?.[0]
+                    ? `${ENV.API.BASE_URL}/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}`
+                    : ""),
+                provider_attributions: place.provider_attributions ?? [],
+                photo_source_uri: place.photos?.[0]?.source_uri,
+                photo_attributions:
+                  place.photos?.[0]?.author_attributions ?? [],
+                rating: place.rating ?? 0,
+                price:
+                  place.price_level != null
+                    ? "$".repeat(place.price_level)
+                    : undefined,
+                categories: (place.types ?? []).map((type: string) => ({
+                  alias: type,
+                  title: type.replace(/_/g, " "),
+                })),
+                location: {
+                  address1: place.vicinity ?? "",
+                  city: "",
+                  state: "",
+                  zip_code: "",
+                },
+                coordinates: {
+                  latitude: place.geometry.location.lat,
+                  longitude: place.geometry.location.lng,
+                },
+                phone: "",
+                is_open_now: place.opening_hours?.open_now,
+                distance: calculateDistance(
+                  location.coords.latitude,
+                  location.coords.longitude,
+                  place.geometry.location.lat,
+                  place.geometry.location.lng,
+                ),
+              }),
+            )
+            .filter((restaurant: Restaurant) => {
+              if (
+                seen.current.has(restaurant.id) ||
+                restaurant.rating < rating ||
+                (!DEMO_MODE && restaurant.distance * 1609.34 > radius)
+              )
+                return false;
+              if (
+                selectedPrices.length &&
+                (!restaurant.price ||
+                  !selectedPrices.includes(restaurant.price))
+              )
+                return false;
+              seen.current.add(restaurant.id);
+              return true;
+            });
+          if (batch.length) {
+            setRestaurants((previous) =>
+              firstPage ? batch : [...previous, ...batch],
+            );
+            return;
+          }
+        } while (token);
+        setError(
+          "No more restaurants match your filters. Try adjusting your filters.",
+        );
+      } catch (err) {
+        if (requestGeneration === generation.current) {
+          setError(
+            err instanceof Error ? err.message : "Failed to fetch restaurants",
+          );
         }
-      });
-    }
-    return () => {
-      mounted = false;
-    };
-  }, [location, isInitialFetch, fetchRestaurants]);
+      } finally {
+        if (requestGeneration === generation.current) {
+          fetching.current = false;
+          setLoading(false);
+        }
+      }
+    },
+    [location, radius, rating, prices, cuisine, openNow],
+  );
 
-  // Debug effect to log state changes
   useEffect(() => {
-    const currentRestaurant = restaurantsRef.current[currentIndex];
-    console.log('Restaurants state updated:', {
-      count: restaurantsRef.current.length,
-      currentIndex,
-      currentRestaurant,
-      allRestaurants: restaurantsRef.current,
-    });
-  }, [restaurants, currentIndex]);
-
-  const refreshRestaurants = useCallback(() => {
-    seenRestaurants.clear();
+    const requestGeneration = ++generation.current;
+    fetching.current = false;
+    seen.current.clear();
+    nextPageToken.current = undefined;
+    setRestaurants([]);
     setCurrentIndex(0);
-    setIsInitialFetch(true);
-    fetchRestaurants(true);
-  }, [fetchRestaurants]);
+    if (location) void fetchPage(true, requestGeneration);
+    return () => {
+      generation.current++;
+    };
+  }, [fetchPage, refreshVersion]);
 
-  const currentRestaurant = restaurantsRef.current[currentIndex];
-  if (!currentRestaurant) {
-    console.log('No current restaurant available:', {
-      currentIndex,
-      totalRestaurants: restaurantsRef.current.length,
-    });
-  }
+  const nextRestaurant = useCallback(() => {
+    if (fetching.current || !restaurants.length) return;
+    if (currentIndex < restaurants.length - 1) {
+      setCurrentIndex((index) => index + 1);
+    } else if (nextPageToken.current) {
+      setCurrentIndex(restaurants.length);
+      void fetchPage(false, generation.current);
+    } else {
+      setCurrentIndex(restaurants.length);
+      setError(
+        "You have seen all matching restaurants. Try adjusting your filters.",
+      );
+    }
+  }, [currentIndex, restaurants.length, fetchPage]);
 
+  const previousRestaurant = useCallback(() => {
+    if (!fetching.current) {
+      setCurrentIndex((index) => Math.max(0, index - 1));
+      setError(null);
+    }
+  }, []);
+  const refreshRestaurants = useCallback(() => {
+    if (!location) setLocationRetry((version) => version + 1);
+    else setRefreshVersion((version) => version + 1);
+  }, [location]);
   return {
-    currentRestaurant,
+    restaurants,
+    currentRestaurant: restaurants[currentIndex],
     loading,
     error,
     nextRestaurant,
+    previousRestaurant,
     refreshRestaurants,
+    currentIndex,
+    total: restaurants.length,
+    useDeviceLocation: () => setLocationRetry((version) => version + 1),
   };
-}; 
+};
