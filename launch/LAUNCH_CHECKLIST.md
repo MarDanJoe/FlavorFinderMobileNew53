@@ -109,3 +109,7 @@ Privacy, terms and support are implemented in the app and generated as standalon
 ## Accessibility and asset audit — October 1, 2026
 
 Shared secondary/accent text now has measured contrast of at least 4.74:1 against the three light theme surfaces. Selected small controls have 48-point targets, and discovery/filter/location/room semantics were improved. TypeScript and 36 tests pass. See ACCESSIBILITY_AUDIT.md for source changes and pending physical-device checks. ASSET_AUDIT.md records font/icon/provider evidence and unresolved legacy-image/branding provenance; these assets are not all cleared for launch.
+
+## Provider privacy follow-up — October 1, 2026
+
+Brevo currently shows one-month transactional-log retention, no previews for new emails, and anonymous tracking disabled. Owner decision on anonymization pending. Supabase dashboard confirms Free plan without project backups; plan an encrypted off-site database backup and tested restore before public launch. See PROVIDER_PRIVACY_REVIEW.md. Image source trace still does not establish licenses for the sample food images/current branding. No retention/deletion settings changed in this review.

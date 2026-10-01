@@ -14,3 +14,5 @@ This inventory records evidence, not a blanket clearance of every asset.
 | icon.png, splash-icon.png, favicon.png | Legacy files | Not referenced by current iOS/web branding config. Provenance undocumented; inventory separately before reuse. |
 
 Remaining: confirm branding creation history, clear/replace legacy imagery, include full third-party notices in distributed acknowledgements, inspect native bundle and keep source/license evidence with future assets. No AI-image license claim can be made without knowing which tool, terms and inputs produced the image.
+
+Follow-up source trace: git history identifies f3f7c55 as the addition of current branding and all five sample food images. No original download URL, tool receipt, prompt or image license was found in repository documentation. Git provenance establishes when files entered the repository, not permission to use the underlying content. Native config continues to exclude sample food images; current iOS branding still needs creation-source confirmation.
