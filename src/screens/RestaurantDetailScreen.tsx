@@ -230,6 +230,40 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               {message}
             </Text>
           )}
+          {!DEMO_MODE && (
+            <View style={[styles.section, { marginTop: 20 }]}>
+              <Text
+                accessibilityRole="header"
+                style={{
+                  color: colors.ink,
+                  fontSize: 18,
+                  fontWeight: "700",
+                  marginBottom: 8,
+                }}
+              >
+                What’s on the menu?
+              </Text>
+              <Text style={[layout.subtitle, { marginBottom: 12 }]}>
+                {details?.website
+                  ? "Find the menu on the restaurant’s website. Menu availability and prices may vary."
+                  : "No restaurant website is available. You can call the restaurant to ask about its menu."}
+              </Text>
+              {!!details?.website && (
+                <TouchableOpacity
+                  accessibilityRole="link"
+                  accessibilityLabel="Open restaurant website to look for the menu"
+                  accessibilityHint="Opens an external website; a menu may not be available."
+                  onPress={() => openLink(details.website)}
+                  style={[layout.primary, { flexDirection: "row", gap: 10 }]}
+                >
+                  <Ionicons name="globe-outline" size={20} color="#fff" />
+                  <Text style={layout.primaryText}>
+                    Visit restaurant website ↗
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           <View style={styles.links}>
             {[
               {
@@ -246,12 +280,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 title: "Call",
                 enabled: !!details?.formatted_phone_number && !DEMO_MODE,
                 action: () => openLink(`tel:${details.formatted_phone_number}`),
-              },
-              {
-                name: "globe-outline" as const,
-                title: "Website",
-                enabled: !!details?.website && !DEMO_MODE,
-                action: () => openLink(details.website),
               },
             ].map((action) => (
               <TouchableOpacity
