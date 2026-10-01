@@ -266,6 +266,7 @@ export default function RoomsScreen({
   ) => (
     <TouchableOpacity
       accessibilityRole="button"
+      accessibilityState={{ disabled: busy || disabled, busy }}
       disabled={busy || disabled}
       onPress={onPress}
       style={[

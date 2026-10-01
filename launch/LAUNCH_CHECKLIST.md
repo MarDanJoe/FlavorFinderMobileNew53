@@ -105,3 +105,7 @@ Privacy, terms and support are implemented in the app and generated as standalon
 - 36 automated tests, TypeScript and formatting pass. Live checks passed against hosted Google/Supabase with three sessions: privacy/isolation, immutable retry, late join, concurrent stable tie, all-pass, early finish and host departure. This does not replace signed-device UI QA.
 - Store listing/reviewer steps updated for group voting; privacy worksheet prepared in APP_PRIVACY_WORKSHEET.md. Final declarations remain pending provider-retention and native-manifest review.
 - Apple membership/payment pending. Mac updated to 15.8.1; local Xcode 16.2 still does not support the required native toolchain.
+
+## Accessibility and asset audit — October 1, 2026
+
+Shared secondary/accent text now has measured contrast of at least 4.74:1 against the three light theme surfaces. Selected small controls have 48-point targets, and discovery/filter/location/room semantics were improved. TypeScript and 36 tests pass. See ACCESSIBILITY_AUDIT.md for source changes and pending physical-device checks. ASSET_AUDIT.md records font/icon/provider evidence and unresolved legacy-image/branding provenance; these assets are not all cleared for launch.

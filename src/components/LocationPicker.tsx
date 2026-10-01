@@ -40,8 +40,9 @@ export function LocationPicker({
     <View style={{ marginBottom: 12 }}>
       <TouchableOpacity
         accessibilityRole="button"
+        accessibilityState={{ expanded: editing }}
         onPress={() => setEditing(!editing)}
-        style={{ paddingVertical: 12 }}
+        style={{ paddingVertical: 12, minHeight: 48, justifyContent: "center" }}
       >
         <Text style={{ color: colors.green, fontWeight: "600" }}>
           {label} · Change location
@@ -60,6 +61,12 @@ export function LocationPicker({
             editable={!busy}
           />
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Explore this city or ZIP code"
+            accessibilityState={{
+              disabled: busy || query.trim().length < 2,
+              busy,
+            }}
             disabled={busy || query.trim().length < 2}
             onPress={() => void search()}
             style={layout.primary}
@@ -71,6 +78,8 @@ export function LocationPicker({
             )}
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy }}
             disabled={busy}
             onPress={() => {
               onSelect(null);

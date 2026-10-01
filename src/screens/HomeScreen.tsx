@@ -171,7 +171,9 @@ export function HomeScreen({
               }}
             />
           )}
-          <Text style={layout.title}>Good food.{"\n"}Great discoveries.</Text>
+          <Text accessibilityRole="header" style={layout.title}>
+            Good food.{"\n"}Great discoveries.
+          </Text>
           <Text style={[layout.subtitle, { marginTop: 9, marginBottom: 18 }]}>
             Discover your next favorite. Let your friends help choose.
           </Text>
@@ -534,8 +536,8 @@ const styles = StyleSheet.create({
   },
   filter: {
     borderRadius: 15,
-    width: 43,
-    height: 43,
+    width: 48,
+    height: 48,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.border,
@@ -602,8 +604,8 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
   actions: { justifyContent: "center", gap: 18, paddingTop: 20 },
   undo: {
-    width: 42,
-    height: 42,
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
   },

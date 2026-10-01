@@ -60,10 +60,16 @@ export function FilterSheet({
       <View style={styles.overlay}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
+          accessible={false}
+          importantForAccessibility="no"
           onPress={onClose}
           accessibilityLabel="Close filters"
         />
-        <View style={styles.sheet}>
+        <View
+          style={styles.sheet}
+          accessibilityViewIsModal
+          onAccessibilityEscape={onClose}
+        >
           <View
             style={[
               layout.row,
@@ -71,6 +77,7 @@ export function FilterSheet({
             ]}
           >
             <Text
+              accessibilityRole="header"
               style={[layout.title, { fontSize: 25, flex: 1, marginRight: 8 }]}
             >
               Make it your kind of place.
@@ -78,7 +85,8 @@ export function FilterSheet({
             <TouchableOpacity
               onPress={onClose}
               accessibilityLabel="Close filters"
-              style={{ padding: 8 }}
+              accessibilityRole="button"
+              style={{ padding: 12, minWidth: 48, minHeight: 48 }}
             >
               <Ionicons name="close" size={24} color={colors.ink} />
             </TouchableOpacity>
@@ -145,6 +153,7 @@ export function FilterSheet({
             <Text style={layout.primaryText}>Find my flavor</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() => setDraft(defaultPreferences)}
             style={{ padding: 16, alignItems: "center" }}
           >
@@ -181,6 +190,8 @@ const styles = StyleSheet.create({
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   chip: {
+    minHeight: 48,
+    justifyContent: "center",
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 13,

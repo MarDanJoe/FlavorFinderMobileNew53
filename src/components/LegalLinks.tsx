@@ -29,7 +29,12 @@ export function LegalLinks() {
           accessibilityRole="link"
           accessibilityLabel={label}
           onPress={() => navigation.navigate("Legal", { document })}
-          style={{ paddingVertical: 12 }}
+          style={{
+            paddingVertical: 12,
+            minHeight: 48,
+            minWidth: 48,
+            justifyContent: "center",
+          }}
         >
           <Text style={{ fontSize: 13, color: colors.green }}>{label}</Text>
         </TouchableOpacity>
