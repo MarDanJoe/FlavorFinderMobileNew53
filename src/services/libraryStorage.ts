@@ -41,14 +41,23 @@ async function hydrate(ids: string[]) {
 }
 export function libraryStorage(userId?: string) {
   let revision = 0;
+  const accountToken = async () => {
+    const { data, error } = await supabase!.auth.getSession();
+    if (error) throw error;
+    if (!data.session || data.session.user.id !== userId)
+      throw new Error("Your account changed. Reload your saved places.");
+    return data.session.access_token;
+  };
   return {
     async getItem(key: string) {
       if (userId && supabase) {
+        const token = await accountToken();
         const { data, error } = await supabase
           .from("libraries")
           .select("place_ids,preferences,revision")
           .eq("user_id", userId)
-          .maybeSingle();
+          .maybeSingle()
+          .setHeader("Authorization", `Bearer ${token}`);
         if (error) throw error;
         revision = data?.revision ?? 0;
         return JSON.stringify({
@@ -79,10 +88,15 @@ export function libraryStorage(userId?: string) {
           "You can save up to 100 places. Remove one to add another.",
         );
       if (userId && supabase) {
-        const { data: nextRevision, error } = await supabase.rpc(
-          "save_library",
-          { ids, prefs: data.preferences, expected_revision: revision },
-        );
+        const token = await accountToken();
+        // Bind this write to the account that owns the library even if sign-in changes mid-request.
+        const { data: nextRevision, error } = await supabase
+          .rpc("save_library", {
+            ids,
+            prefs: data.preferences,
+            expected_revision: revision,
+          })
+          .setHeader("Authorization", `Bearer ${token}`);
         if (error) throw new Error(error.message);
         revision = nextRevision;
       } else

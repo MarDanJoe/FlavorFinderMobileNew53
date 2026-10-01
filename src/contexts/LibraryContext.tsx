@@ -35,10 +35,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     favorites: [],
     preferences: defaultPreferences,
   });
+  const [dataKey, setDataKey] = useState(key);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const store = useRef<PersistentLibrary | null>(null);
+  const storeKey = useRef<string | null>(null);
   const renderedKey = useRef(key);
   renderedKey.current = key;
   useEffect(() => {
@@ -48,6 +50,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       key,
     );
     store.current = current;
+    storeKey.current = key;
+    setDataKey(key);
     setReady(false);
     setData({ favorites: [], preferences: defaultPreferences });
     setError(null);
@@ -71,7 +75,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, [key, version]);
   const mutate = async (update: (value: LibraryData) => LibraryData) => {
     const current = store.current;
-    if (!ready || !current || renderedKey.current !== key)
+    if (
+      !ready ||
+      !current ||
+      storeKey.current !== key ||
+      renderedKey.current !== key
+    )
       throw new Error("Your library is still loading. Please try again.");
     try {
       const next = await current.mutate(update);
@@ -80,7 +89,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         setError(null);
       }
     } catch {
-      if (store.current === current)
+      if (store.current === current && renderedKey.current === key)
         setError("Changes could not be saved. Your previous library is safe.");
       throw new Error(
         "Could not save changes. Reload your saved places and try again.",
@@ -90,9 +99,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   return (
     <Context.Provider
       value={{
-        ...data,
-        ready,
-        error,
+        ...(dataKey === key
+          ? data
+          : { favorites: [], preferences: defaultPreferences }),
+        ready: ready && dataKey === key && storeKey.current === key,
+        error: dataKey === key ? error : null,
         reload: () => setVersion((value) => value + 1),
         save: (r) =>
           mutate((value) => ({

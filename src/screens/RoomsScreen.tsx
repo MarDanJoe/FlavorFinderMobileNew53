@@ -218,7 +218,7 @@ export default function RoomsScreen({
           void rememberRoom(fresh.code).catch(() => {});
         }
       } catch (e) {
-        if (mounted.current)
+        if (mounted.current && actionRevision === revision.current)
           setError(
             e instanceof Error
               ? e.message
