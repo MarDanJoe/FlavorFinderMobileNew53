@@ -21,7 +21,7 @@ import { colors, layout } from "../theme";
 import {
   roomAction,
   newRoomCode,
-  previousRoom,
+  restorePreviousRoom,
   rememberRoom,
   VotingRoom,
 } from "../services/rooms";
@@ -49,6 +49,7 @@ export default function RoomsScreen({
   const [card, setCard] = useState<Restaurant | null>(null);
   const [cardError, setCardError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [restoreRetry, setRestoreRetry] = useState(0);
   const [confirmation, setConfirmation] = useState<"leave" | "finish" | null>(
     null,
   );
@@ -97,17 +98,25 @@ export default function RoomsScreen({
       return;
     let active = true;
     const restoreRevision = revision.current;
-    void previousRoom()
-      .then(async (last) => {
-        if (!last || !active) return;
-        const restored = await roomAction("get", last);
-        if (active && restoreRevision === revision.current) setRoom(restored);
+    void restorePreviousRoom()
+      .then((restored) => {
+        if (active && restoreRevision === revision.current && restored) {
+          setRoom(restored);
+          setConnection("");
+        }
       })
-      .catch(() => {});
+      .catch((error) => {
+        if (active && restoreRevision === revision.current)
+          setConnection(
+            error instanceof Error
+              ? error.message
+              : "Unable to restore your room. Try again when connected.",
+          );
+      });
     return () => {
       active = false;
     };
-  }, [route?.params?.code, route?.params?.deck, focused]);
+  }, [route?.params?.code, route?.params?.deck, focused, restoreRetry]);
   useEffect(() => {
     let active = true;
     setCard(null);
@@ -160,7 +169,7 @@ export default function RoomsScreen({
           setConnection("");
         }
       } catch (e) {
-        if (active)
+        if (active && started === revision.current && !requestBusy.current)
           setConnection(
             e instanceof Error && /expired|Join this room/.test(e.message)
               ? e.message
@@ -572,7 +581,15 @@ export default function RoomsScreen({
             {error}
           </Text>
         )}
-        {/expired|Join this room/.test(connection) &&
+        {!!connection &&
+          !room &&
+          !/expired|not found|Join this room/i.test(connection) &&
+          button(
+            "Retry saved room",
+            () => setRestoreRetry((value) => value + 1),
+            true,
+          )}
+        {/expired|not found|Join this room/i.test(connection) &&
           button(
             "Return to rooms",
             () => {

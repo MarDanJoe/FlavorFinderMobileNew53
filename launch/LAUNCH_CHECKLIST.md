@@ -12,7 +12,7 @@ This is a working launch checklist, not a certification that the app is ready. E
 
 ## Deploy backend
 
-Initial deployment completed through the Supabase dashboard on September 30, 2026. Live checks: health 200; unauthenticated restaurant/deletion requests 401; guest sign-in succeeded; guest deletion 403; guest library reads returned no rows; guest saves rejected. The replacement Google key is installed; a live search returned 20 restaurants. Email template editing currently requires custom SMTP in the dashboard. Registered-user sync/deletion and real email delivery remain unverified.
+Initial deployment completed through the Supabase dashboard on September 30, 2026. Live checks: health 200; unauthenticated restaurant/deletion requests 401; guest sign-in succeeded; guest deletion 403; guest library reads returned no rows; guest saves rejected. The replacement Google key is installed; a live search returned 20 restaurants. Email template editing currently requires custom SMTP in the dashboard. Owner-confirmed email confirmation, recovery and password sign-in passed. Registered-user cross-device sync/deletion still need signed-device verification.
 
 For future CLI deployments, install the Supabase CLI and sign in locally. Never share your service-role key in chat or bundle it in the app.
 
@@ -95,4 +95,13 @@ The Codex in-app browser currently blocks direct access to the Supabase API (`ER
 
 ## Privacy and Google attribution review
 
-Privacy, terms and support are implemented in the app and generated as standalone pages from the same content source. Owner-supplied support email, US launch scope and observed provider behavior are included. The official Google Maps logo, provider credits, photo source links and review visit dates are handled. The updated restaurant backend passed a live check. Approved privacy/terms/support pages are published at https://mardanjoe.github.io/FlavorFinderMobileNew53/. Local release URLs are configured; EAS cloud environment setup, operator identity/retention confirmation, Google key review and physical-device attribution QA remain required. See [Google review](GOOGLE_API_REVIEW.md).
+Privacy, terms and support are implemented in the app and generated as standalone pages from the same content source. Owner-supplied support email, US launch scope and observed provider behavior are included. The official Google Maps logo, provider credits, photo source links and review visit dates are handled. The updated restaurant backend passed a live check. Approved privacy/terms/support pages are published at https://mardanjoe.github.io/FlavorFinderMobileNew53/. Local and EAS cloud release URLs are configured. Operator identity/retention confirmation, old Google key retirement and physical-device attribution QA remain required. See [Google review](GOOGLE_API_REVIEW.md).
+
+## Verification update — October 1, 2026
+
+- Google confirmed daily limits of 100 each for the four used Places API New methods; the separate backend limit remains 100 total forwarded requests/day. The $5 budget only sends alerts. Old key retirement remains pending identification of other consumers.
+- Nine public settings saved for EAS development, preview and production. No Google or privileged Supabase credentials uploaded. Proposed bundle identifier still requires Apple registration.
+- Room restoration preserves membership on connection failures, allows retry, removes expired/removed membership and protects a different account’s storage. Four recovery regression tests added.
+- 36 automated tests, TypeScript and formatting pass. Live checks passed against hosted Google/Supabase with three sessions: privacy/isolation, immutable retry, late join, concurrent stable tie, all-pass, early finish and host departure. This does not replace signed-device UI QA.
+- Store listing/reviewer steps updated for group voting; privacy worksheet prepared in APP_PRIVACY_WORKSHEET.md. Final declarations remain pending provider-retention and native-manifest review.
+- Apple membership/payment pending. Mac updated to 15.8.1; local Xcode 16.2 still does not support the required native toolchain.

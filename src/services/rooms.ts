@@ -58,3 +58,21 @@ export async function rememberRoom(code: string | null) {
 export async function previousRoom() {
   return AsyncStorage.getItem(await storageKey());
 }
+
+// Keep the captured identity's room code on network failures so reconnect can retry.
+export async function restorePreviousRoom(): Promise<VotingRoom | null> {
+  const key = await storageKey();
+  const code = await AsyncStorage.getItem(key);
+  if (!code) return null;
+  try {
+    return await roomAction("get", code);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /expired|not found|Join this room/i.test(error.message)
+    ) {
+      await AsyncStorage.removeItem(key);
+    }
+    throw error;
+  }
+}
