@@ -126,54 +126,68 @@ export default function FavoritesScreen() {
           ]}
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <TouchableOpacity
-                style={{ flexDirection: "row", flex: 1 }}
-                accessibilityLabel={`View ${item.name}`}
-                onPress={() =>
-                  navigation.navigate("RestaurantDetail", { id: item.id })
-                }
-              >
-                <RestaurantImage
-                  uri={item.image_url}
-                  style={{ width: 94, height: 104, borderRadius: 15 }}
-                />
-                <View
-                  style={{ flex: 1, paddingLeft: 14, justifyContent: "center" }}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity
+                  style={{ flexDirection: "row", flex: 1 }}
+                  accessibilityLabel={`View ${item.name}`}
+                  onPress={() =>
+                    navigation.navigate("RestaurantDetail", { id: item.id })
+                  }
                 >
-                  <Text style={styles.name} numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <Text
-                    style={{ fontSize: 12, color: colors.muted, marginTop: 7 }}
+                  <RestaurantImage
+                    uri={item.image_url}
+                    style={{ width: 94, height: 104, borderRadius: 15 }}
+                  />
+                  <View
+                    style={{
+                      flex: 1,
+                      paddingLeft: 14,
+                      justifyContent: "center",
+                    }}
                   >
-                    ★ {item.rating.toFixed(1)}{" "}
-                    {item.price ? ` · ${item.price}` : ""}
-                  </Text>
-                  <Text
-                    style={{ fontSize: 11, color: colors.muted, marginTop: 8 }}
-                    numberOfLines={1}
-                  >
-                    {item.location.address1}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.muted,
+                        marginTop: 7,
+                      }}
+                    >
+                      ★ {item.rating.toFixed(1)}{" "}
+                      {item.price ? ` · ${item.price}` : ""}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: colors.muted,
+                        marginTop: 8,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {item.location.address1}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityLabel={`Remove ${item.name} from saved places`}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void remove(item.id)
+                      .then(() =>
+                        setMessage(`${item.name} removed from saved places.`),
+                      )
+                      .catch((e) => setMessage(e.message));
+                  }}
+                  style={{ padding: 10, justifyContent: "center" }}
+                >
+                  <Ionicons name="heart" size={20} color={colors.accent} />
+                </TouchableOpacity>
+              </View>
               {!DEMO_MODE && (
-                <GoogleAttribution providers={item.provider_attributions} />
+                <View style={{ marginTop: 10 }}>
+                  <GoogleAttribution providers={item.provider_attributions} />
+                </View>
               )}
-              <TouchableOpacity
-                accessibilityLabel={`Remove ${item.name} from saved places`}
-                accessibilityRole="button"
-                onPress={() => {
-                  void remove(item.id)
-                    .then(() =>
-                      setMessage(`${item.name} removed from saved places.`),
-                    )
-                    .catch((e) => setMessage(e.message));
-                }}
-                style={{ padding: 10, justifyContent: "center" }}
-              >
-                <Ionicons name="heart" size={20} color={colors.accent} />
-              </TouchableOpacity>
             </View>
           )}
           ListEmptyComponent={
@@ -240,7 +254,6 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   card: {
-    flexDirection: "row",
     backgroundColor: colors.paper,
     padding: 12,
     borderRadius: 22,

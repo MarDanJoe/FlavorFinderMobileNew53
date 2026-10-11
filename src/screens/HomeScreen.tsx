@@ -120,8 +120,16 @@ export function HomeScreen({
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gesture) =>
+        !busyRef.current &&
         Math.abs(gesture.dx) > 12 &&
         Math.abs(gesture.dx) > Math.abs(gesture.dy),
+      onMoveShouldSetPanResponderCapture: (_, gesture) =>
+        !busyRef.current &&
+        Math.abs(gesture.dx) > 12 &&
+        Math.abs(gesture.dx) > Math.abs(gesture.dy),
+      // Keep a horizontal swipe on the card instead of letting its parent
+      // ScrollView or details button interrupt it near the screen edge.
+      onPanResponderTerminationRequest: () => false,
       onPanResponderMove: (_, gesture) => {
         if (!busyRef.current) latest.current.position.setValue(gesture.dx);
       },
@@ -136,6 +144,7 @@ export function HomeScreen({
           }).start();
       },
       onPanResponderTerminate: () =>
+        !busyRef.current &&
         Animated.spring(latest.current.position, {
           toValue: 0,
           useNativeDriver: true,

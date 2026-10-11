@@ -175,3 +175,29 @@ test("failed save restores a dragged card without advancing or starting an exit 
   assert.equal(app.animations.length, 0);
   assert.deepEqual(app.saved, []);
 });
+
+test("full horizontal swipe keeps card ownership and advances after its animation", async () => {
+  const app = harness();
+  const tree = app.render();
+  const card = app.find(tree, (n) => n.type === "AnimatedCard");
+  assert.equal(
+    card.props.onMoveShouldSetPanResponderCapture(null, { dx: 330, dy: 8 }),
+    true,
+  );
+  assert.equal(
+    card.props.onMoveShouldSetPanResponderCapture(null, { dx: 8, dy: 330 }),
+    false,
+  );
+  assert.equal(card.props.onPanResponderTerminationRequest(), false);
+  card.props.onPanResponderMove(null, { dx: -330 });
+  card.props.onPanResponderRelease(null, { dx: -330 });
+  await app.settle();
+  const animation = app.animations.at(-1);
+  card.props.onPanResponderTerminate();
+  assert.equal(animation.v.value, -330);
+  animation.callback({ finished: true });
+  const next = app.find(app.render(), (n) => n.type === "AnimatedCard");
+  assert.equal(next.props.key, "b");
+  assert.equal(next.props.style[1].transform[0].translateX.value, 0);
+  assert.deepEqual(app.saved, []);
+});
