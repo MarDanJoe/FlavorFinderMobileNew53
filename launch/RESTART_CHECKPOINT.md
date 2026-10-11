@@ -1,6 +1,12 @@
-# Flavor Finder restart checkpoint — October 1, 2026
+# Flavor Finder restart checkpoint — October 11, 2026
+
+October 11 Apple setup: membership is active, team ZFC76UXBG9. Registered explicit bundle ID com.mardanjoe.flavorfinder. Apple rejected the plain store name; owner selected Flavor Finder: Swipe & Vote. Created and verified App Store Connect app 6821721808, iOS 1.0 Prepare for Submission. eas.json production submission targets that app/team. No signed build, signing credentials, upload or public release yet. All 40 tests, TypeScript and local release guard pass today. Official EAS CLI 24.12.1 installed in temporary pnpm cache; CLI login awaits owner approval in Expo device login. Browser sessions/temporary login requests may expire; start a fresh device login when necessary. Historical enrollment-pending notes below are superseded by this paragraph.
 
 Workspace: `/Users/dannyambrose/Documents/ChatGPT/Flavor finder/repository`.
+
+October 11 submission completed: owner explicitly approved creation and storage of an App Store Connect API key with Expo. Generated APP_MANAGER role (not ADMIN) and assigned to the real bundle ID. EAS submission 590361be-e196-4602-9585-3db5a9fd78c6 completed successfully; binary 1.0.0 (2) uploaded to Apple. Apple processing/TestFlight availability still pending at last check. No tester invitations or public App Store release sent. Next: confirm processing, create internal tester group/add owner and build, then owner installs TestFlight on iPhone. Earlier paragraphs saying submission not done are historical and superseded.
+
+October 11 signed build: owner completed Apple 2FA and approved new distribution certificate/profile. EAS production iOS build 3fdbd1af-3f0d-4826-8e68-64e8708d0532 verified FINISHED, STORE distribution, com.mardanjoe.flavorfinder, version 1.0.0 build 2. Expo CLI logged in as flavor, organization ambrose-industries. App Store Connect submission has not happened: submit requires a separate API key and was cancelled before creation. Fixed local config bundle fallback to the registered identifier because submit does not load build environment variables. Owner approval required for new App Store Connect upload credentials/Expo storage, distinct from signing approval. Apple password stays with owner/local Keychain; never request it in chat.
 
 Real Expo SDK 57 app with Supabase authentication, hosted places/account deletion and voting rooms. Schema, hourly room cleanup, Brevo SMTP and email templates deployed. Owner confirmed live signup confirmation, recovery and password sign-in. City discovery loads real restaurants. No signed native build/device QA yet; Apple enrollment payment is pending support.
 

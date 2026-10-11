@@ -15,7 +15,7 @@ module.exports = ({ config }) => {
     ios: {
       ...config.ios,
       bundleIdentifier:
-        process.env.IOS_BUNDLE_IDENTIFIER || "com.flavorfinder.development",
+        process.env.IOS_BUNDLE_IDENTIFIER || "com.mardanjoe.flavorfinder",
     },
     extra: {
       ...config.extra,
