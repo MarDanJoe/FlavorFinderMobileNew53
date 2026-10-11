@@ -58,6 +58,7 @@ export function HomeScreen({
   const [showFilters, setShowFilters] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [swiping, setSwiping] = useState(false);
   const [lastAction, setLastAction] = useState<"save" | "skip" | null>(null);
   // Each discovery owns its native transform; an outgoing card cannot leave
   // the following card translated off screen during a native animation reset.
@@ -118,6 +119,7 @@ export function HomeScreen({
   };
   const pan = useRef(
     PanResponder.create({
+      onPanResponderGrant: () => setSwiping(true),
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gesture) =>
         !busyRef.current &&
@@ -134,6 +136,7 @@ export function HomeScreen({
         if (!busyRef.current) latest.current.position.setValue(gesture.dx);
       },
       onPanResponderRelease: (_, gesture) => {
+        setSwiping(false);
         if (busyRef.current) return;
         if (Math.abs(gesture.dx) > latest.current.cardWidth * 0.25)
           actRef.current(gesture.dx > 0);
@@ -143,12 +146,14 @@ export function HomeScreen({
             useNativeDriver: true,
           }).start();
       },
-      onPanResponderTerminate: () =>
-        !busyRef.current &&
-        Animated.spring(latest.current.position, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start(),
+      onPanResponderTerminate: () => {
+        setSwiping(false);
+        if (!busyRef.current)
+          Animated.spring(latest.current.position, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+      },
     }),
   ).current;
   const selectedCuisine =
@@ -157,6 +162,8 @@ export function HomeScreen({
   return (
     <SafeAreaView style={layout.screen} edges={["top", "left", "right"]}>
       <ScrollView
+        scrollEnabled={!swiping && !busy}
+        directionalLockEnabled
         contentContainerStyle={{ paddingBottom: 16 }}
         showsVerticalScrollIndicator={false}
       >

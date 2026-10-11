@@ -201,3 +201,19 @@ test("full horizontal swipe keeps card ownership and advances after its animatio
   assert.equal(next.props.style[1].transform[0].translateX.value, 0);
   assert.deepEqual(app.saved, []);
 });
+
+test("card drag locks page scrolling until release and exit animation complete", async () => {
+  const app = harness();
+  let tree = app.render();
+  const card = app.find(tree, (n) => n.type === "AnimatedCard");
+  const page = (t) =>
+    app.find(t, (n) => n.type === "Scroll" && n.props.directionalLockEnabled);
+  assert.equal(page(tree).props.scrollEnabled, true);
+  card.props.onPanResponderGrant();
+  assert.equal(page(app.render()).props.scrollEnabled, false);
+  card.props.onPanResponderRelease(null, { dx: -330 });
+  await app.settle();
+  assert.equal(page(app.render()).props.scrollEnabled, false);
+  app.animations.at(-1).callback({ finished: true });
+  assert.equal(page(app.render()).props.scrollEnabled, true);
+});

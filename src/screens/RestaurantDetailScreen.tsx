@@ -278,8 +278,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               {
                 name: "call-outline" as const,
                 title: "Call",
-                enabled: !!details?.formatted_phone_number && !DEMO_MODE,
-                action: () => openLink(`tel:${details.formatted_phone_number}`),
+                enabled: !!details?.phone && !DEMO_MODE,
+                action: () =>
+                  openLink(`tel:${details.phone.replace(/[^+\d]/g, "")}`),
               },
             ].map((action) => (
               <TouchableOpacity
