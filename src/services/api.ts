@@ -48,7 +48,21 @@ export const searchRestaurants = async (params: {
 };
 
 // Get a single restaurant by ID
-export const getRestaurantById = async (placeId: string, basic = false) => {
+// Share only requests that are currently running; never retain provider results
+// as a persistent or background cache.
+const pendingDetails = new Map<string, Promise<RestaurantDetails>>();
+type RestaurantDetails = Awaited<ReturnType<typeof loadRestaurantById>>;
+export const getRestaurantById = (placeId: string, basic = false) => {
+  const key = `${basic ? "basic" : "full"}:${placeId}`;
+  const existing = pendingDetails.get(key);
+  if (existing) return existing;
+  const pending = loadRestaurantById(placeId, basic).finally(() => {
+    if (pendingDetails.get(key) === pending) pendingDetails.delete(key);
+  });
+  pendingDetails.set(key, pending);
+  return pending;
+};
+const loadRestaurantById = async (placeId: string, basic = false) => {
   if (DEMO_MODE) return demoRestaurant(placeId);
   try {
     const data = await placesFetch(

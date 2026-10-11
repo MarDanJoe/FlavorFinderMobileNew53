@@ -37,7 +37,7 @@ export default function RoomsScreen({
   route,
 }: {
   navigation: NativeStackNavigationProp<RootStackParamList>;
-  route?: { params?: { code?: string; deck?: string[] } };
+  route?: { params?: { code?: string; deck?: string[]; cards?: Restaurant[] } };
 }) {
   const focused = useIsFocused();
   const [room, setRoom] = useState<VotingRoom | null>(null);
@@ -65,7 +65,16 @@ export default function RoomsScreen({
     room?.status === "finished"
       ? room.winner
       : room?.deck.find((id) => !(id in room.myVotes));
-  const cache = useRef(new Map<string, Restaurant>());
+  // Reuse only the discovery cards already loaded for this active room flow.
+  // The shared room and invites still contain place IDs only.
+  const cache = useRef(
+    new Map<string, Restaurant>(
+      (route?.params?.cards ?? []).map((restaurant) => [
+        restaurant.id,
+        restaurant,
+      ]),
+    ),
+  );
   useEffect(() => {
     mounted.current = true;
     return () => {

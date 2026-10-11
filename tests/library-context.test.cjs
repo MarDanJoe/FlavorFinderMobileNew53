@@ -16,6 +16,7 @@ function harness() {
     openNow: false,
   };
   const react = {
+    useCallback: (fn) => fn,
     createContext: () => ({ Provider: "provider" }),
     createElement: (_type, props) => props.value,
     useState(initial) {

@@ -64,12 +64,19 @@ export async function placesFetch(path: string) {
       headers: token ? { Authorization: `Bearer ${token}`, apikey: key! } : {},
       signal: controller.signal,
     });
+    if (response.status === 429) {
+      const failure = await response.json().catch(() => null);
+      if (failure?.error_message?.startsWith("Daily discovery limit reached")) {
+        const reset = new Date();
+        reset.setUTCHours(24, 0, 0, 0);
+        throw new Error(
+          `Today's shared discovery limit has been reached. Try again after ${reset.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`,
+        );
+      }
+      throw new Error("Too many requests. Please wait a minute and try again.");
+    }
     if (!response.ok)
-      throw new Error(
-        response.status === 429
-          ? "Discovery is busy. Please try again later."
-          : "Restaurant service is unavailable. Please try again.",
-      );
+      throw new Error("Restaurant service is unavailable. Please try again.");
     return await response.json();
   } finally {
     clearTimeout(timer);

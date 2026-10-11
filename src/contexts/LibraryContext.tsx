@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { libraryStorage } from "../services/libraryStorage";
@@ -26,6 +27,7 @@ interface Library {
   remove: (id: string) => Promise<void>;
   updatePreferences: (p: Preferences) => Promise<void>;
   reload: () => void;
+  loadSavedDetails: () => void;
 }
 const Context = createContext<Library | null>(null);
 export function LibraryProvider({ children }: { children: React.ReactNode }) {
@@ -39,6 +41,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [detailsKey, setDetailsKey] = useState<string | null>(null);
+  const loadDetails = detailsKey === key;
+  const loadSavedDetails = useCallback(() => setDetailsKey(key), [key]);
   const store = useRef<PersistentLibrary | null>(null);
   const storeKey = useRef<string | null>(null);
   const renderedKey = useRef(key);
@@ -46,7 +51,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
     const current = new PersistentLibrary(
-      DEMO_MODE ? AsyncStorage : libraryStorage(user?.id),
+      DEMO_MODE ? AsyncStorage : libraryStorage(user?.id, loadDetails),
       key,
     );
     store.current = current;
@@ -72,7 +77,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [key, version]);
+  }, [key, version, loadDetails]);
   const mutate = async (update: (value: LibraryData) => LibraryData) => {
     const current = store.current;
     if (
@@ -105,6 +110,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         ready: ready && dataKey === key && storeKey.current === key,
         error: dataKey === key ? error : null,
         reload: () => setVersion((value) => value + 1),
+        loadSavedDetails,
         save: (r) =>
           mutate((value) => ({
             ...value,

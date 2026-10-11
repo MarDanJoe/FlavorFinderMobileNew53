@@ -21,7 +21,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 // Define the types for our navigation
 export type RootStackParamList = {
   Legal: { document: "privacy" | "terms" | "support" };
-  Room: { code?: string; deck?: string[] } | undefined;
+  Room:
+    | {
+        code?: string;
+        deck?: string[];
+        cards?: import("../hooks/useRestaurants").Restaurant[];
+      }
+    | undefined;
   Login: undefined;
   Register: undefined;
   MainApp: NavigatorScreenParams<TabParamList> | undefined;

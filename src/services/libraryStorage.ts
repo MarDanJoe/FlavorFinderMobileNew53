@@ -39,7 +39,7 @@ async function hydrate(ids: string[]) {
   }
   return restaurants;
 }
-export function libraryStorage(userId?: string) {
+export function libraryStorage(userId?: string, loadDetails = false) {
   let revision = 0;
   const accountToken = async () => {
     const { data, error } = await supabase!.auth.getSession();
@@ -61,7 +61,9 @@ export function libraryStorage(userId?: string) {
         if (error) throw error;
         revision = data?.revision ?? 0;
         return JSON.stringify({
-          favorites: await hydrate(data?.place_ids ?? []),
+          favorites: loadDetails
+            ? await hydrate(data?.place_ids ?? [])
+            : (data?.place_ids ?? []).map(savedPlaceholder),
           preferences: data?.preferences ?? defaultPreferences,
         });
       }
@@ -76,7 +78,7 @@ export function libraryStorage(userId?: string) {
       const clean = { place_ids: ids, preferences: data.preferences };
       await AsyncStorage.setItem(key, JSON.stringify(clean));
       return JSON.stringify({
-        favorites: await hydrate(ids),
+        favorites: loadDetails ? await hydrate(ids) : ids.map(savedPlaceholder),
         preferences: data.preferences,
       });
     },

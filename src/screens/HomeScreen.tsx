@@ -220,6 +220,7 @@ export function HomeScreen({
             onPress={() =>
               navigation.navigate("Room", {
                 deck: discovery.restaurants.slice(0, 20).map((r) => r.id),
+                cards: discovery.restaurants.slice(0, 20),
               })
             }
           >

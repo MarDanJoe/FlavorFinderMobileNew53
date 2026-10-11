@@ -1,5 +1,5 @@
 import { DEMO_MODE } from "../config/demo";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useLibrary } from "../contexts/LibraryContext";
@@ -21,7 +21,12 @@ import { colors, layout } from "../theme";
 export default function FavoritesScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { favorites, remove, ready, error, reload } = useLibrary();
+  const { favorites, remove, ready, error, reload, loadSavedDetails } =
+    useLibrary();
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (focused) loadSavedDetails();
+  }, [focused, loadSavedDetails]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"recent" | "rating">("recent");
   const [message, setMessage] = useState("");
@@ -118,6 +123,9 @@ export default function FavoritesScreen() {
         <ActivityIndicator color={colors.accent} />
       ) : (
         <FlatList
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          windowSize={3}
           data={results}
           keyExtractor={(r) => r.id}
           contentContainerStyle={[
