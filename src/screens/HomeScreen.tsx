@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -59,10 +59,18 @@ export function HomeScreen({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [lastAction, setLastAction] = useState<"save" | "skip" | null>(null);
-  const position = useRef(new Animated.Value(0)).current;
+  // Each discovery owns its native transform; an outgoing card cannot leave
+  // the following card translated off screen during a native animation reset.
+  const position = useMemo(() => new Animated.Value(0), [restaurant?.id]);
   const busyRef = useRef(false);
-  const latest = useRef({ restaurant, discovery, library, cardWidth });
-  latest.current = { restaurant, discovery, library, cardWidth };
+  const latest = useRef({
+    restaurant,
+    discovery,
+    library,
+    cardWidth,
+    position,
+  });
+  latest.current = { restaurant, discovery, library, cardWidth, position };
   const actRef = useRef<(save: boolean) => void>(() => {});
   actRef.current = async (save) => {
     const {
@@ -70,6 +78,7 @@ export function HomeScreen({
       discovery: deck,
       library: store,
       cardWidth: distance,
+      position: cardPosition,
     } = latest.current;
     if (!current || deck.loading || busyRef.current || !store.ready) return;
     busyRef.current = true;
@@ -77,13 +86,18 @@ export function HomeScreen({
     setMessage("");
     try {
       if (save) await store.save(current);
-      Animated.timing(position, {
+      Animated.timing(cardPosition, {
         toValue: save ? distance + 100 : -distance - 100,
         duration: 230,
         useNativeDriver: true,
-      }).start(() => {
+      }).start(({ finished }) => {
+        if (!finished || latest.current.restaurant?.id !== current.id) {
+          cardPosition.setValue(0);
+          busyRef.current = false;
+          setBusy(false);
+          return;
+        }
         deck.nextRestaurant();
-        position.setValue(0);
         busyRef.current = false;
         setBusy(false);
         setLastAction(save ? "save" : "skip");
@@ -94,6 +108,7 @@ export function HomeScreen({
         );
       });
     } catch (err) {
+      cardPosition.setValue(0);
       busyRef.current = false;
       setBusy(false);
       setMessage(
@@ -108,20 +123,20 @@ export function HomeScreen({
         Math.abs(gesture.dx) > 12 &&
         Math.abs(gesture.dx) > Math.abs(gesture.dy),
       onPanResponderMove: (_, gesture) => {
-        if (!busyRef.current) position.setValue(gesture.dx);
+        if (!busyRef.current) latest.current.position.setValue(gesture.dx);
       },
       onPanResponderRelease: (_, gesture) => {
         if (busyRef.current) return;
         if (Math.abs(gesture.dx) > latest.current.cardWidth * 0.25)
           actRef.current(gesture.dx > 0);
         else
-          Animated.spring(position, {
+          Animated.spring(latest.current.position, {
             toValue: 0,
             useNativeDriver: true,
           }).start();
       },
       onPanResponderTerminate: () =>
-        Animated.spring(position, {
+        Animated.spring(latest.current.position, {
           toValue: 0,
           useNativeDriver: true,
         }).start(),
@@ -306,6 +321,7 @@ export function HomeScreen({
             </View>
           ) : (
             <Animated.View
+              key={restaurant.id}
               {...pan.panHandlers}
               style={[
                 styles.card,
