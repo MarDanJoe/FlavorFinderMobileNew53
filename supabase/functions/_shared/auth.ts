@@ -12,7 +12,6 @@ export const json = (data: unknown, status = 200) =>
       ...cors,
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-      "Cache-Control": "no-store",
     },
   });
 export async function authenticated(req: Request) {

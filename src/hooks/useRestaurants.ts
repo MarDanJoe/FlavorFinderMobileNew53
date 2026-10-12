@@ -30,6 +30,7 @@ const deg2rad = (deg: number): number => {
 };
 
 export interface Restaurant {
+  saved_details_unavailable?: boolean;
   provider_attributions?: Array<{ provider: string; providerUri?: string }>;
   photo_source_uri?: string;
   photo_attributions?: Array<{

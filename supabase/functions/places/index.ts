@@ -5,7 +5,8 @@ import {
   photoResource,
   detailMask,
 } from "./provider.ts";
-Deno.serve(async (req) => {
+type Usage = { route: string; forwarded: boolean; upstream_status?: number };
+async function handle(req: Request, usage: Usage) {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "GET") return json({ error: "Method not allowed" }, 405);
   const url = new URL(req.url);
@@ -43,6 +44,16 @@ Deno.serve(async (req) => {
   } catch (e) {
     return json({ error_message: (e as Error).message }, 400);
   }
+  usage.route =
+    route === "details/json"
+      ? mask?.includes("reviews")
+        ? "details_full"
+        : "details_basic"
+      : route === "nearbysearch/json"
+        ? "search"
+        : route === "location/json"
+          ? "city_lookup"
+          : "photo";
   const key = Deno.env.get("GOOGLE_PLACES_API_KEY");
   if (!key)
     return json({ error_message: "Restaurant service is not configured" }, 503);
@@ -69,6 +80,7 @@ Deno.serve(async (req) => {
       429,
     );
   try {
+    usage.forwarded = true;
     const upstream = await fetch(
       `https://places.googleapis.com/v1/${endpoint}`,
       {
@@ -82,6 +94,7 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(12000),
       },
     );
+    usage.upstream_status = upstream.status;
     if (!upstream.ok)
       return json({ error_message: "Restaurant provider is unavailable" }, 502);
     if (route === "photo") {
@@ -105,4 +118,20 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error_message: "Restaurant service timed out" }, 502);
   }
+}
+Deno.serve(async (req) => {
+  const started = Date.now();
+  const usage: Usage = { route: "other", forwarded: false };
+  const response = await handle(req, usage);
+  if (usage.route !== "other") {
+    console.info(
+      JSON.stringify({
+        event: "places_usage_v1",
+        ...usage,
+        status: response.status,
+        duration_ms: Date.now() - started,
+      }),
+    );
+  }
+  return response;
 });

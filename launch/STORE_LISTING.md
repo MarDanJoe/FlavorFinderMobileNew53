@@ -1,8 +1,8 @@
-# App Store listing draft — October 1, 2026
+# App Store listing draft — October 12, 2026
 
-Use after signed-device QA. Name availability, copyright owner, screenshots, age rating and final privacy answers remain pending. No store record or submission has been created.
+App Store Connect record 6821721808 exists; internal TestFlight testing is underway. Public submission remains pending. Copyright owner, signed-device screenshots, age rating and final privacy answers remain open.
 
-Name: Flavor Finder
+Name: Flavor Finder: Swipe & Vote
 Subtitle: Swipe. Vote. Eat together.
 Promotional text: Find restaurants you love and decide together. Invite friends to a voting room, swipe the same restaurant deck, and let Flavor Finder settle the tie.
 

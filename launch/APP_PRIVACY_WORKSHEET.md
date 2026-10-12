@@ -38,3 +38,7 @@ The current application has no ad identifiers, cross-app advertising SDK, purcha
 
 Apple entry instructions: https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy
 Tracking guidance: https://developer.apple.com/app-store/user-privacy-and-data-use/
+
+## October 12 operational metrics
+
+Custom Places logs record only event name, route category (search/city_lookup/details_basic/details_full/photo), response status, whether a provider fetch was attempted, provider HTTP status when available and duration. No account ID, place ID, URL/query, location, headers or credentials are included in these custom entries. Supabase infrastructure logs and their retention remain a separate review gate. Forwarded attempts are not an invoice: failed or interrupted requests may have different billing outcomes, and streamed photos can fail after response headers.

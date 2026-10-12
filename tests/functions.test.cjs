@@ -6,6 +6,7 @@ const vm = require("node:vm");
 function functionHandler(file, identity, { permitted = true, fetcher } = {}) {
   let handler;
   let forwarded = 0;
+  const events = [];
   const normalize = {};
   vm.runInNewContext(
     ts.transpileModule(
@@ -27,6 +28,7 @@ function functionHandler(file, identity, { permitted = true, fetcher } = {}) {
     }).outputText,
     {
       exports,
+      console: { info: (message) => events.push(JSON.parse(message)) },
       require: (name) =>
         name.includes("provider")
           ? normalize
@@ -76,7 +78,7 @@ function functionHandler(file, identity, { permitted = true, fetcher } = {}) {
       },
     },
   );
-  return { handler, forwarded: () => forwarded };
+  return { handler, forwarded: () => forwarded, events };
 }
 const placesFile = "supabase/functions/places/index.ts";
 const url =
@@ -191,4 +193,38 @@ test("deletion requires a registered user, confirmation and recent password auth
     ).status,
     403,
   );
+});
+
+test("request metrics distinguish forwarded and blocked calls without private request data", async () => {
+  const allowed = functionHandler(placesFile, { user: { id: "private-user" } });
+  await allowed.handler(new Request(url));
+  assert.equal(allowed.events.length, 1);
+  assert.equal(allowed.events[0].route, "search");
+  assert.equal(allowed.events[0].forwarded, true);
+  assert.equal(allowed.events[0].status, 200);
+  const blocked = functionHandler(
+    placesFile,
+    { user: { id: "private-user" } },
+    { permitted: false },
+  );
+  await blocked.handler(new Request(url));
+  assert.equal(blocked.events[0].forwarded, false);
+  assert.equal(blocked.events[0].status, 429);
+  for (const event of [...allowed.events, ...blocked.events]) {
+    assert.deepEqual(
+      Object.keys(event).sort(),
+      event.forwarded
+        ? [
+            "duration_ms",
+            "event",
+            "forwarded",
+            "route",
+            "status",
+            "upstream_status",
+          ]
+        : ["duration_ms", "event", "forwarded", "route", "status"],
+    );
+    assert.ok(!JSON.stringify(event).includes("private-user"));
+    assert.ok(!JSON.stringify(event).includes("server-only-secret"));
+  }
 });

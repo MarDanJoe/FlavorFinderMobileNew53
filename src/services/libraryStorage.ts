@@ -7,6 +7,7 @@ import type { Restaurant } from "../hooks/useRestaurants";
 export function savedPlaceholder(id: string): Restaurant {
   return {
     id,
+    saved_details_unavailable: true,
     name: "Saved restaurant · tap for details",
     image_url: "",
     rating: 0,
@@ -29,7 +30,10 @@ async function hydrate(ids: string[], limit: number, existing: Restaurant[]) {
     const batch = await Promise.all(
       ids.slice(i, i + 4).map(async (id, offset) => {
         const known = existing.find(
-          (r) => r.id === id && r.name !== savedPlaceholder(id).name,
+          (r) =>
+            r.id === id &&
+            !r.saved_details_unavailable &&
+            r.name !== savedPlaceholder(id).name,
         );
         if (known) return known;
         if (i + offset >= limit) return savedPlaceholder(id);

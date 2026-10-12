@@ -46,6 +46,9 @@ export default function FavoritesScreen() {
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
     );
+  const missingDetails = favorites
+    .slice(0, savedDetailLimit)
+    .some((r) => r.saved_details_unavailable);
   const results =
     sort === "rating"
       ? [...filtered].sort((a, b) => b.rating - a.rating)
@@ -115,6 +118,26 @@ export default function FavoritesScreen() {
           </Text>
         )}
       </View>
+      {missingDetails && ready && (
+        <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ color: colors.muted }}
+          >
+            Some saved places could not load. Your saves are safe. Check your
+            connection or try again after the daily limit resets.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={reload}
+            style={{ paddingVertical: 12 }}
+          >
+            <Text style={{ color: colors.accent }}>
+              Retry loading saved places
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {!!error && (
         <TouchableOpacity
           onPress={reload}
@@ -172,7 +195,9 @@ export default function FavoritesScreen() {
                         marginTop: 7,
                       }}
                     >
-                      ★ {item.rating.toFixed(1)}{" "}
+                      {item.saved_details_unavailable
+                        ? "Details unavailable"
+                        : `★ ${item.rating.toFixed(1)}`}{" "}
                       {item.price ? ` · ${item.price}` : ""}
                     </Text>
                     <Text

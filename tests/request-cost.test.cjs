@@ -135,3 +135,37 @@ test("daily cap error explains exhaustion and reset without retrying a billable 
   );
   assert.equal(calls, 1);
 });
+
+test("partial Saved failures preserve IDs and successful rows without automatic retries", async () => {
+  const calls = [];
+  const mod = moduleAt("src/services/libraryStorage.ts", {
+    "./supabase": { supabase: null },
+    "./library": { defaultPreferences: {} },
+    "./api": {
+      getRestaurantById: async (id) => {
+        calls.push(id);
+        if (id === "b") throw Error("Daily limit");
+        return { id, name: id };
+      },
+    },
+    "@react-native-async-storage/async-storage": {
+      getItem: async () =>
+        JSON.stringify({ place_ids: ["a", "b", "c", "d"], preferences: {} }),
+      setItem: async () => {},
+    },
+  });
+  const loaded = JSON.parse(
+    await mod.libraryStorage(undefined, true).getItem("guest"),
+  );
+  assert.deepEqual(calls, ["a", "b", "c"]);
+  assert.deepEqual(
+    loaded.favorites.map((r) => r.id),
+    ["a", "b", "c", "d"],
+  );
+  assert.equal(loaded.favorites[1].saved_details_unavailable, true);
+  assert.equal(loaded.favorites[0].name, "a");
+  await mod
+    .libraryStorage(undefined, true, 3, loaded.favorites)
+    .getItem("guest");
+  assert.deepEqual(calls, ["a", "b", "c", "b"]);
+});

@@ -1,5 +1,10 @@
 # Flavor Finder release checklist
 
+## Current status — October 12, 2026
+
+Apple membership and App Store Connect record are active. Build 8 is available to Danny and Isabelle for internal testing. Solo discovery, saves, location, swipe/scroll and Call have owner-confirmed device results. Two-person voting and device accessibility/sync/deletion remain open. Current work adds Saved pagination/partial-error handling and provider request-category logs for the next build. The shared daily cap remains 100; the $5 budget is an alert, not a spending stop. Public release has not been submitted. Historical setup instructions below are reference steps, not a claim that Apple enrollment remains pending.
+
+
 This is a working launch checklist, not a certification that the app is ready. Expo and Supabase accounts are connected; the database migration, guest authentication, and both backend functions are deployed. Remaining external setup is listed below. The first release is iPhone focused.
 
 ## Owner setup — use accounts you own
