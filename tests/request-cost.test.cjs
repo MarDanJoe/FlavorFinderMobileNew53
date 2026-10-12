@@ -45,7 +45,14 @@ test("loading saved IDs at startup makes no provider calls; opening Saved explic
   const opened = JSON.parse(
     await mod.libraryStorage(undefined, true).getItem("guest"),
   );
-  assert.deepEqual(calls, ids);
+  assert.deepEqual(calls, ids.slice(0, 3));
+  const more = JSON.parse(
+    await mod
+      .libraryStorage(undefined, true, 6, opened.favorites)
+      .getItem("guest"),
+  );
+  assert.deepEqual(calls, ids.slice(0, 6));
+  assert.equal(more.favorites[6].name, "Saved restaurant · tap for details");
   assert.equal(opened.favorites[0].name, "a");
 });
 test("simultaneous place detail consumers share one request; later calls and failed retries are fresh", async () => {

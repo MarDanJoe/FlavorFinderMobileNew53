@@ -21,8 +21,17 @@ import { colors, layout } from "../theme";
 export default function FavoritesScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { favorites, remove, ready, error, reload, loadSavedDetails } =
-    useLibrary();
+  const {
+    favorites,
+    remove,
+    ready,
+    searchReady,
+    error,
+    reload,
+    loadSavedDetails,
+    loadMoreSaved,
+    savedDetailLimit,
+  } = useLibrary();
   const focused = useIsFocused();
   useEffect(() => {
     if (focused) loadSavedDetails();
@@ -30,11 +39,13 @@ export default function FavoritesScreen() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"recent" | "rating">("recent");
   const [message, setMessage] = useState("");
-  const filtered = favorites.filter((r) =>
-    `${r.name} ${r.location.address1} ${r.categories?.map((c) => c.title).join(" ")}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase()),
-  );
+  const filtered = favorites
+    .slice(0, savedDetailLimit)
+    .filter((r) =>
+      `${r.name} ${r.location.address1} ${r.categories?.map((c) => c.title).join(" ")}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
+    );
   const results =
     sort === "rating"
       ? [...filtered].sort((a, b) => b.rating - a.rating)
@@ -53,8 +64,8 @@ export default function FavoritesScreen() {
         <View style={styles.search}>
           <Ionicons name="search-outline" size={19} color={colors.muted} />
           <TextInput
-            accessibilityLabel="Search saved restaurants"
-            placeholder="Find a saved place"
+            accessibilityLabel="Search loaded saved restaurants"
+            placeholder="Search loaded saved places"
             placeholderTextColor={colors.muted}
             value={query}
             onChangeText={setQuery}
@@ -119,7 +130,7 @@ export default function FavoritesScreen() {
           <GoogleAttribution />
         </View>
       )}
-      {!ready ? (
+      {!ready && !searchReady ? (
         <ActivityIndicator color={colors.accent} />
       ) : (
         <FlatList
@@ -198,6 +209,18 @@ export default function FavoritesScreen() {
               )}
             </View>
           )}
+          ListFooterComponent={
+            favorites.length > savedDetailLimit ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                disabled={!ready}
+                onPress={loadMoreSaved}
+                style={layout.primary}
+              >
+                <Text style={layout.primaryText}>Load more saved places</Text>
+              </TouchableOpacity>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>

@@ -29,6 +29,8 @@ interface Library {
   updatePreferences: (p: Preferences) => Promise<void>;
   reload: () => void;
   loadSavedDetails: () => void;
+  loadMoreSaved: () => void;
+  savedDetailLimit: number;
 }
 const Context = createContext<Library | null>(null);
 export function LibraryProvider({ children }: { children: React.ReactNode }) {
@@ -44,6 +46,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [detailsKey, setDetailsKey] = useState<string | null>(null);
+  const [detailLimit, setDetailLimit] = useState(3);
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const loadDetails = detailsKey === key;
   const loadSavedDetails = useCallback(() => setDetailsKey(key), [key]);
   const store = useRef<PersistentLibrary | null>(null);
@@ -54,15 +59,24 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     const changingAccount = storeKey.current !== key;
     const current = new PersistentLibrary(
-      DEMO_MODE ? AsyncStorage : libraryStorage(user?.id, loadDetails),
+      DEMO_MODE
+        ? AsyncStorage
+        : libraryStorage(
+            user?.id,
+            loadDetails,
+            detailLimit,
+            changingAccount ? [] : dataRef.current.favorites,
+          ),
       key,
     );
     store.current = current;
     storeKey.current = key;
     setDataKey(key);
     setReady(false);
-    if (changingAccount)
+    if (changingAccount) {
+      setDetailLimit(3);
       setData({ favorites: [], preferences: defaultPreferences });
+    }
     setError(null);
     current
       .load()
@@ -84,7 +98,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [key, version, loadDetails]);
+  }, [key, version, loadDetails, detailLimit]);
   const mutate = async (update: (value: LibraryData) => LibraryData) => {
     const current = store.current;
     if (
@@ -119,6 +133,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         error: dataKey === key ? error : null,
         reload: () => setVersion((value) => value + 1),
         loadSavedDetails,
+        loadMoreSaved: () => setDetailLimit((value) => value + 3),
+        savedDetailLimit: detailLimit,
         save: (r) =>
           mutate((value) => ({
             ...value,

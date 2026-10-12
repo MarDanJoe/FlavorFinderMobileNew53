@@ -22,12 +22,17 @@ export function savedPlaceholder(id: string): Restaurant {
     distance: 0,
   };
 }
-async function hydrate(ids: string[]) {
+async function hydrate(ids: string[], limit: number, existing: Restaurant[]) {
   const restaurants: Restaurant[] = [];
   // Keep concurrent requests bounded; provider details are only held in memory.
   for (let i = 0; i < ids.length; i += 4) {
     const batch = await Promise.all(
-      ids.slice(i, i + 4).map(async (id) => {
+      ids.slice(i, i + 4).map(async (id, offset) => {
+        const known = existing.find(
+          (r) => r.id === id && r.name !== savedPlaceholder(id).name,
+        );
+        if (known) return known;
+        if (i + offset >= limit) return savedPlaceholder(id);
         try {
           return await getRestaurantById(id, true);
         } catch {
@@ -39,7 +44,12 @@ async function hydrate(ids: string[]) {
   }
   return restaurants;
 }
-export function libraryStorage(userId?: string, loadDetails = false) {
+export function libraryStorage(
+  userId?: string,
+  loadDetails = false,
+  detailLimit = 3,
+  existing: Restaurant[] = [],
+) {
   let revision = 0;
   const accountToken = async () => {
     const { data, error } = await supabase!.auth.getSession();
@@ -62,7 +72,7 @@ export function libraryStorage(userId?: string, loadDetails = false) {
         revision = data?.revision ?? 0;
         return JSON.stringify({
           favorites: loadDetails
-            ? await hydrate(data?.place_ids ?? [])
+            ? await hydrate(data?.place_ids ?? [], detailLimit, existing)
             : (data?.place_ids ?? []).map(savedPlaceholder),
           preferences: data?.preferences ?? defaultPreferences,
         });
@@ -78,7 +88,9 @@ export function libraryStorage(userId?: string, loadDetails = false) {
       const clean = { place_ids: ids, preferences: data.preferences };
       await AsyncStorage.setItem(key, JSON.stringify(clean));
       return JSON.stringify({
-        favorites: loadDetails ? await hydrate(ids) : ids.map(savedPlaceholder),
+        favorites: loadDetails
+          ? await hydrate(ids, detailLimit, existing)
+          : ids.map(savedPlaceholder),
         preferences: data.preferences,
       });
     },
