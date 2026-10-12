@@ -75,6 +75,7 @@ function harness() {
   };
   const library = {
     ready: true,
+    searchReady: true,
     preferences: { radius: 8047, cuisine: "" },
     save: async (r) => {
       if (failSave) throw Error("offline");

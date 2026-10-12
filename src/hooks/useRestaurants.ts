@@ -61,6 +61,7 @@ export interface Restaurant {
 }
 
 interface UseRestaurantsParams {
+  enabled?: boolean;
   searchLocation?: { latitude: number; longitude: number };
   radius?: number;
   rating?: number;
@@ -88,6 +89,7 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
   const cuisine = params?.cuisine ?? "";
   const openNow = params?.openNow ?? false;
   const prices = JSON.stringify(params?.price ?? []);
+  const enabled = params?.enabled !== false;
 
   useEffect(() => {
     let active = true;
@@ -159,7 +161,7 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
 
   const fetchPage = useCallback(
     async (firstPage: boolean, requestGeneration: number) => {
-      if (!location || fetching.current) return;
+      if (!enabled || !location || fetching.current) return;
       fetching.current = true;
       setLoading(true);
       setError(null);
@@ -264,7 +266,7 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
         }
       }
     },
-    [location, radius, rating, prices, cuisine, openNow],
+    [enabled, location, radius, rating, prices, cuisine, openNow],
   );
 
   useEffect(() => {

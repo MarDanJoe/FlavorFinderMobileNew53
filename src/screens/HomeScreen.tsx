@@ -45,6 +45,7 @@ export function HomeScreen({
     label: string;
   } | null>(null);
   const discovery = useRestaurants({
+    enabled: library.searchReady,
     ...library.preferences,
     searchLocation: searchLocation ?? undefined,
   });
@@ -295,7 +296,7 @@ export function HomeScreen({
           </Text>
         </View>
         <View style={{ width: cardWidth, alignSelf: "center", minHeight: 320 }}>
-          {loading || !library.ready ? (
+          {loading || !library.searchReady ? (
             <View style={styles.state}>
               <ActivityIndicator size="large" color={colors.accent} />
               <Text style={styles.stateTitle}>Finding your flavor…</Text>

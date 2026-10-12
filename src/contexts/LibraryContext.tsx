@@ -22,6 +22,7 @@ interface Library {
   favorites: Restaurant[];
   preferences: Preferences;
   ready: boolean;
+  searchReady: boolean;
   error: string | null;
   save: (r: Restaurant) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -39,6 +40,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   });
   const [dataKey, setDataKey] = useState(key);
   const [ready, setReady] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [detailsKey, setDetailsKey] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   renderedKey.current = key;
   useEffect(() => {
     let active = true;
+    const changingAccount = storeKey.current !== key;
     const current = new PersistentLibrary(
       DEMO_MODE ? AsyncStorage : libraryStorage(user?.id, loadDetails),
       key,
@@ -58,7 +61,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     storeKey.current = key;
     setDataKey(key);
     setReady(false);
-    setData({ favorites: [], preferences: defaultPreferences });
+    if (changingAccount)
+      setData({ favorites: [], preferences: defaultPreferences });
     setError(null);
     current
       .load()
@@ -72,7 +76,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
           );
       })
       .finally(() => {
-        if (active) setReady(true);
+        if (active) {
+          setLoadedKey(key);
+          setReady(true);
+        }
       });
     return () => {
       active = false;
@@ -108,6 +115,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
           ? data
           : { favorites: [], preferences: defaultPreferences }),
         ready: ready && dataKey === key && storeKey.current === key,
+        searchReady: loadedKey === key && dataKey === key,
         error: dataKey === key ? error : null,
         reload: () => setVersion((value) => value + 1),
         loadSavedDetails,

@@ -261,3 +261,19 @@ test("unanswered location permission times out and manual city search still load
   assert.equal(result.error, null);
   assert.equal(requests, 1);
 });
+
+test("startup waits for saved preferences instead of issuing an unfiltered search first", async () => {
+  const calls = [];
+  const app = harness(async (params) => {
+    calls.push(params);
+    return { results: [place("a")] };
+  });
+  app.filters({ enabled: false, rating: 0, price: [] });
+  await app.flush();
+  assert.equal(calls.length, 0);
+  app.filters({ enabled: true, rating: 0, price: [], cuisine: "tacos" });
+  const result = await app.flush();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].keyword, "tacos");
+  assert.equal(result.currentRestaurant.id, "a");
+});

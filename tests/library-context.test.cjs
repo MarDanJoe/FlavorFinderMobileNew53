@@ -90,6 +90,11 @@ function harness() {
     },
     setUser: (value) => (user = value),
     writes,
+    startEffects() {
+      const pending = effects;
+      effects = [];
+      pending.forEach((effect) => effect());
+    },
   };
 }
 test("account switch hides old favorites before effects run and blocks writes to the previous account", async () => {
@@ -125,4 +130,21 @@ test("signing out hides the registered library immediately and loads only guest 
   await app.flush();
   const guest = app.render();
   assert.match(guest.favorites[0].id, /guest/);
+});
+
+test("opening Saved preserves discovery preferences and search readiness during hydration", async () => {
+  const app = harness();
+  assert.equal(app.render().searchReady, false);
+  await app.flush();
+  let library = app.render();
+  assert.equal(library.searchReady, true);
+  await library.updatePreferences({ ...library.preferences, cuisine: "tacos" });
+  library = app.render();
+  library.loadSavedDetails();
+  app.render();
+  app.startEffects();
+  library = app.render();
+  assert.equal(library.preferences.cuisine, "tacos");
+  assert.equal(library.searchReady, true);
+  assert.equal(library.ready, false);
 });
