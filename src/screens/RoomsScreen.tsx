@@ -37,12 +37,20 @@ export default function RoomsScreen({
   route,
 }: {
   navigation: NativeStackNavigationProp<RootStackParamList>;
-  route?: { params?: { code?: string; deck?: string[]; cards?: Restaurant[] } };
+  route?: {
+    params?: {
+      code?: string;
+      deck?: string[];
+      cards?: Restaurant[];
+      searchSummary?: string;
+    };
+  };
 }) {
   const focused = useIsFocused();
   const [room, setRoom] = useState<VotingRoom | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState(route?.params?.code ?? "");
+  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [connection, setConnection] = useState("");
@@ -60,6 +68,7 @@ export default function RoomsScreen({
   const mounted = useRef(true);
   const sessionIdentity = useRef<string | null>(null);
   const position = useRef(new Animated.Value(0)).current;
+  const canSwipe = useRef(false);
   const voteRef = useRef<(liked: boolean) => void>(() => {});
   const nextId =
     room?.status === "finished"
@@ -242,29 +251,49 @@ export default function RoomsScreen({
     [position],
   );
   voteRef.current = (liked) => {
-    if (!room || room.status !== "voting" || !nextId || requestBusy.current)
+    if (
+      !room ||
+      room.status !== "voting" ||
+      !nextId ||
+      !card ||
+      requestBusy.current
+    )
       return;
     void perform("vote", { place: nextId, liked });
   };
+  canSwipe.current = room?.status === "voting" && !!nextId && !!card && !busy;
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
+        canSwipe.current &&
+        Math.abs(g.dx) > 10 &&
+        Math.abs(g.dx) > Math.abs(g.dy),
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        canSwipe.current &&
+        Math.abs(g.dx) > 10 &&
+        Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderGrant: () => setDragging(true),
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
       onPanResponderMove: (_, g) => {
         if (!requestBusy.current) position.setValue(g.dx);
       },
       onPanResponderRelease: (_, g) => {
-        if (Math.abs(g.dx) > 80) voteRef.current(g.dx > 0);
+        setDragging(false);
+        if (Math.abs(g.dx) > 80 && Math.abs(g.dx) > Math.abs(g.dy))
+          voteRef.current(g.dx > 0);
         Animated.spring(position, {
           toValue: 0,
           useNativeDriver: true,
         }).start();
       },
-      onPanResponderTerminate: () =>
+      onPanResponderTerminate: () => {
+        setDragging(false);
         Animated.spring(position, {
           toValue: 0,
           useNativeDriver: true,
-        }).start(),
+        }).start();
+      },
     }),
   ).current;
   const button = (
@@ -294,6 +323,8 @@ export default function RoomsScreen({
   return (
     <SafeAreaView style={layout.screen} edges={["top", "left", "right"]}>
       <ScrollView
+        scrollEnabled={!dragging}
+        directionalLockEnabled
         contentContainerStyle={[
           layout.content,
           { paddingTop: 24, paddingBottom: 32 },
@@ -325,10 +356,19 @@ export default function RoomsScreen({
             {route?.params?.deck ? (
               <>
                 <Text style={layout.subtitle}>
-                  {route.params.deck.length} restaurants from your discovery
-                  filters. Rooms hold up to 10 friends and expire after 24
-                  hours.
+                  {route.params.deck.length} restaurants in your confirmed group
+                  deck. Rooms hold up to 10 friends and expire after 24 hours.
                 </Text>
+                {!!route.params.searchSummary && (
+                  <Text style={layout.subtitle}>
+                    {route.params.searchSummary}
+                  </Text>
+                )}
+                {button(
+                  "Change area or filters",
+                  () => navigation.replace("RoomSetup"),
+                  true,
+                )}
                 {button(
                   "Create room",
                   () =>
@@ -345,7 +385,7 @@ export default function RoomsScreen({
               <>
                 {button(
                   "Choose restaurants & create a room",
-                  () => navigation.navigate("MainApp", { screen: "Home" }),
+                  () => navigation.navigate("RoomSetup"),
                   false,
                   DEMO_MODE,
                 )}
@@ -454,6 +494,7 @@ export default function RoomsScreen({
                 {nextId &&
                   (card ? (
                     <Animated.View
+                      key={nextId}
                       {...(room.status === "voting" ? pan.panHandlers : {})}
                       style={[
                         styles.card,
@@ -521,7 +562,7 @@ export default function RoomsScreen({
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel="Pass on this restaurant"
-                      disabled={busy}
+                      disabled={busy || !card}
                       onPress={() => voteRef.current(false)}
                       style={[styles.vote, { backgroundColor: colors.paper }]}
                     >
@@ -530,7 +571,7 @@ export default function RoomsScreen({
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel="Like this restaurant"
-                      disabled={busy}
+                      disabled={busy || !card}
                       onPress={() => voteRef.current(true)}
                       style={[styles.vote, { backgroundColor: colors.accent }]}
                     >
@@ -562,7 +603,7 @@ export default function RoomsScreen({
                 )}
                 {room.status === "finished" &&
                   button("Find a fresh deck", () =>
-                    navigation.navigate("MainApp", { screen: "Home" }),
+                    navigation.navigate("RoomSetup"),
                   )}
               </>
             )}

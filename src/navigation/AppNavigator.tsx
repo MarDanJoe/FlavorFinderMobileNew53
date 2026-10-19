@@ -1,5 +1,6 @@
 import React from "react";
 import LegalScreen from "../screens/LegalScreen";
+import RoomSetupScreen from "../screens/RoomSetupScreen";
 import RoomsScreen from "../screens/RoomsScreen";
 import {
   NavigationContainer,
@@ -21,8 +22,10 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 // Define the types for our navigation
 export type RootStackParamList = {
   Legal: { document: "privacy" | "terms" | "support" };
+  RoomSetup: undefined;
   Room:
     | {
+        searchSummary?: string;
         code?: string;
         deck?: string[];
         cards?: import("../hooks/useRestaurants").Restaurant[];
@@ -123,7 +126,12 @@ export const AppNavigator = () => {
       <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainApp" component={MainTabs} />
         <Stack.Screen name="Legal" component={LegalScreen} />
-        <Stack.Screen name="Room" component={RoomsScreen} />
+        <Stack.Screen name="RoomSetup" component={RoomSetupScreen} />
+        <Stack.Screen
+          name="Room"
+          component={RoomsScreen}
+          options={{ gestureEnabled: false, fullScreenGestureEnabled: false }}
+        />
         <Stack.Screen
           name="RestaurantDetail"
           component={RestaurantDetailScreen}

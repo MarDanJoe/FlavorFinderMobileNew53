@@ -213,24 +213,15 @@ export function HomeScreen({
         <View style={[layout.content, { marginBottom: 18 }]}>
           <TouchableOpacity
             accessibilityRole="button"
-            disabled={loading || discovery.restaurants.length < 2}
-            style={[
-              layout.primary,
-              (loading || discovery.restaurants.length < 2) && { opacity: 0.5 },
-            ]}
-            onPress={() =>
-              navigation.navigate("Room", {
-                deck: discovery.restaurants.slice(0, 20).map((r) => r.id),
-                cards: discovery.restaurants.slice(0, 20),
-              })
-            }
+            style={layout.primary}
+            onPress={() => navigation.navigate("RoomSetup")}
           >
             <Text style={layout.primaryText}>
               Eat together · Create a voting room
             </Text>
           </TouchableOpacity>
           <Text style={[layout.subtitle, { fontSize: 12, marginTop: 8 }]}>
-            Share this deck with friends. Swipe, vote, settle dinner.
+            Choose the group’s area and filters, then invite your friends.
           </Text>
         </View>
         <ScrollView
