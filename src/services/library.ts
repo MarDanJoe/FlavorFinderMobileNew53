@@ -68,10 +68,19 @@ export class PersistentLibrary {
     private storage: Storage,
     private key: string,
   ) {}
-  async load() {
-    this.data = parseLibrary(await this.storage.getItem(this.key));
-    this.loaded = true;
-    return this.data;
+  load(after?: PersistentLibrary): Promise<LibraryData> {
+    this.loaded = false;
+    // A replacement view must read after the preceding store's queued writes.
+    // Keep the read in this queue too so consecutive reloads inherit the barrier.
+    const task = (after?.pending ?? this.pending)
+      .catch(() => {})
+      .then(async () => {
+        this.data = parseLibrary(await this.storage.getItem(this.key));
+        this.loaded = true;
+        return this.data;
+      });
+    this.pending = task;
+    return task;
   }
   mutate(update: (data: LibraryData) => LibraryData): Promise<LibraryData> {
     const task = this.pending

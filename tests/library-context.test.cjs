@@ -2,7 +2,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const ts = require("typescript");
-function harness() {
+function harness({ storage } = {}) {
   let user = { id: "alice" },
     cursor = 0,
     effects = [];
@@ -55,6 +55,13 @@ function harness() {
       return update({ favorites: [], preferences: defaults });
     }
   }
+  const realLibrary = {};
+  new Function(
+    "exports",
+    ts.transpileModule(fs.readFileSync("src/services/library.ts", "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS },
+    }).outputText,
+  )(realLibrary);
   const output = ts.transpileModule(
     fs.readFileSync("src/contexts/LibraryContext.tsx", "utf8"),
     {
@@ -71,9 +78,11 @@ function harness() {
     if (name === "./AuthContext") return { useAuth: () => ({ user }) };
     if (name === "../config/demo") return { DEMO_MODE: false };
     if (name === "../services/library")
-      return { PersistentLibrary: Store, defaultPreferences: defaults };
+      return storage
+        ? realLibrary
+        : { PersistentLibrary: Store, defaultPreferences: defaults };
     if (name === "../services/libraryStorage")
-      return { libraryStorage: () => ({}) };
+      return { libraryStorage: () => storage ?? {} };
     if (name === "@react-native-async-storage/async-storage") return {};
     throw Error(name);
   });
@@ -86,7 +95,7 @@ function harness() {
       const pending = effects;
       effects = [];
       pending.forEach((f) => f());
-      for (let i = 0; i < 5; i++) await Promise.resolve();
+      for (let i = 0; i < 30; i++) await Promise.resolve();
     },
     setUser: (value) => (user = value),
     writes,
@@ -147,4 +156,47 @@ test("opening Saved preserves discovery preferences and search readiness during 
   assert.equal(library.preferences.cuisine, "tacos");
   assert.equal(library.searchReady, true);
   assert.equal(library.ready, false);
+});
+
+test("Saved hydration waits for an in-flight save and preserves it across consecutive reloads", async () => {
+  let raw = null,
+    release;
+  const storage = {
+    getItem: async () => raw,
+    setItem: async (_key, value) => {
+      await new Promise((resolve) => {
+        release = resolve;
+      });
+      raw = value;
+    },
+  };
+  const app = harness({ storage });
+  app.render();
+  await app.flush();
+  let library = app.render();
+  const save = library.save({
+    id: "new-save",
+    name: "Cafe",
+    rating: 4,
+    distance: 0,
+    categories: [],
+    location: {},
+  });
+  await Promise.resolve();
+  library.loadSavedDetails();
+  app.render();
+  await app.flush();
+  library = app.render();
+  library.reload();
+  app.render();
+  await app.flush();
+  release();
+  await save;
+  await app.flush();
+  library = app.render();
+  assert.equal(library.ready, true);
+  assert.deepEqual(
+    library.favorites.map((r) => r.id),
+    ["new-save"],
+  );
 });

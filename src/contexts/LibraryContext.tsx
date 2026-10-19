@@ -58,6 +58,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
     const changingAccount = storeKey.current !== key;
+    const previous = changingAccount ? undefined : (store.current ?? undefined);
     const current = new PersistentLibrary(
       DEMO_MODE
         ? AsyncStorage
@@ -79,7 +80,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
     setError(null);
     current
-      .load()
+      .load(previous)
       .then((value) => {
         if (active) setData(value);
       })
