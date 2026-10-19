@@ -1,5 +1,7 @@
 # Flavor Finder release checklist
 
+October 19 engineering review: see [current audit](../AUDIT_REPORT.md) and [prioritized roadmap](../IMPROVEMENT_ROADMAP.md). Local review fixes are on `codex/architecture-review`, not deployed. Older dated sections below are historical evidence; they do not establish current build or account status.
+
 ## Current status — October 12, 2026
 
 Apple membership and App Store Connect record are active. Build 10 is available to Danny and Isabelle for internal testing. Solo discovery, saves, location, swipe/scroll and Call have owner-confirmed device results. Two-person voting and device accessibility/sync/deletion remain open. Build 10 includes Saved pagination/partial-error handling. Provider request-category logs are deployed. The signed archive manifest inventory is recorded in NATIVE_PRIVACY_MANIFESTS.md; final privacy declarations remain pending. The shared daily cap remains 100; the $5 budget is an alert, not a spending stop. Public release has not been submitted. Historical setup instructions below are reference steps, not a claim that Apple enrollment remains pending.

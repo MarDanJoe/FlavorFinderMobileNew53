@@ -1,3 +1,13 @@
+# October 19 architecture review checkpoint
+
+Review baseline: clean main `2e38035`; current work branch `codex/architecture-review`. Main is preserved. Read ARCHITECTURE.md, AUDIT_REPORT.md, IMPROVEMENT_ROADMAP.md, TESTING.md and DEPLOYMENT.md before continuing. Safe local fixes: selection-keyed location resolution, enabled-gated location permission and defensive deletion AMR validation. Three regressions reproduced baseline failures; final suite 63 passed, app typecheck/format/release checks and legal-page drift passed. iOS export outcome recorded in TESTING.md. Read-only CI prepared, hosted run pending. No production functions, migrations, caps, ad mode or Apple builds changed by this review. The deletion handler correction needs a separately approved hosted deploy; existing phones do not contain review-branch app fixes.
+
+Owner updates supersede older pending-question notes: Flavor Finder is included in the published AdMob US-state message; owner supplied the public privacy URL. Owner added a bank and awaits deposit verification. Do not verify the unfamiliar old bank. AdMob readiness, app-ads crawler and build 12 processing were not rechecked in the architecture review. No live-ad activation.
+
+Outstanding priorities: backup/restore drill; quota classification/counting and approved capacity plan; dependency reachability/compatible mitigation; two-phone voting/ads/auth/accessibility tests; final native manifests/store declarations. Room identity and same-account hydration races are suspected and need reproduction, not established incidents. No major architectural rewrite recommended.
+
+---
+
 # Flavor Finder restart checkpoint — October 11, 2026
 
 October 11 Apple setup: membership is active, team ZFC76UXBG9. Registered explicit bundle ID com.mardanjoe.flavorfinder. Apple rejected the plain store name; owner selected Flavor Finder: Swipe & Vote. Created and verified App Store Connect app 6821721808, iOS 1.0 Prepare for Submission. eas.json production submission targets that app/team. No signed build, signing credentials, upload or public release yet. All 40 tests, TypeScript and local release guard pass today. Official EAS CLI 24.12.1 installed in temporary pnpm cache; CLI login awaits owner approval in Expo device login. Browser sessions/temporary login requests may expire; start a fresh device login when necessary. Historical enrollment-pending notes below are superseded by this paragraph.
