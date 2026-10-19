@@ -34,7 +34,7 @@ The architecture is appropriate for the product. RLS, RPC authorization, server-
 - Evidence/files: no tracked `.github/workflows` existed despite extensive executable tests and release-sensitive integrations.
 - Correction/benefit: added `quality.yml` for PR/main/review-branch checks: lockfile install, TypeScript, tests, formatting and legal page drift. Actions pinned to verified upstream commits, read-only contents, persisted checkout credentials disabled, timeout and redundant-run cancellation. No production secrets or deploy steps.
 - Complexity/risk: small; consumes normal GitHub Actions minutes after push. Repository billing/branch protection and hosted execution are not configured or verified. Do not claim required checks until an actual successful run and branch rules are confirmed.
-- Verification: local equivalent commands and formatting checks; hosted workflow remains unexecuted.
+- Verification: local equivalent commands and formatting checks; initial hosted workflow succeeded: https://github.com/MarDanJoe/FlavorFinderMobileNew53/actions/runs/39292960066 . Follow-up commit checks must be verified separately.
 
 ### FF-05 — P2: documentation contradicts current app behavior — corrected locally
 
@@ -61,7 +61,7 @@ The architecture is appropriate for the product. RLS, RPC authorization, server-
 - Evidence: retained October 19 npm audit snapshot reports 17 high dependency entries, propagated primarily through two underlying advisories: braces recursion DoS and node-forge signature validation. These are dependency findings, not 17 independently confirmed remotely exploitable app vulnerabilities. Lockfile/tool usage reviewed; mobile exploitability not established.
 - Sources checked: https://github.com/advisories/GHSA-vfj7-8cjw-p6xm and https://github.com/advisories/GHSA-86w9-cpqp-85rv . Braces advisory lists no patched version at review time. Do not assume installing a random newer package fixes it.
 - Plan/benefit: refresh audit, map reachable paths in build/native/server bundles, select compatible upstream fixes or documented mitigations. Restrict build tooling to trusted workspaces/inputs meanwhile.
-- Complexity: medium/high; suggested audit fixes downgrade Expo/RN major versions and are unsuitable as an automatic repair. Validate clean install, native builds, package generation and full regression suite before adopting dependency changes. Snapshot reused; no fresh registry audit was run in this review.
+- Complexity: medium/high; suggested audit fixes downgrade Expo/RN major versions and are unsuitable as an automatic repair. Validate clean install, native builds, package generation and full regression suite before adopting dependency changes. Initial pass reused the snapshot; follow-up refreshed npm audit and still found 17 high entries from the same two advisories. Neither advisory lists a patched version. No package or lockfile changes were made; see launch/DEPENDENCY_REVIEW.md.
 
 ### FF-09 — P1: native voting and AdMob paths need final device verification
 
@@ -75,11 +75,12 @@ The architecture is appropriate for the product. RLS, RPC authorization, server-
 - Plan/benefit: inventory final IPA, reconcile runtime/provider data use, complete Apple disclosures/age rating/copyright and AdMob app/store/app-ads verification. Bank verification is pending per owner, separate from SDK testing.
 - Complexity: medium; depends on final binary and owner decisions. Verify actual public artifacts and account status. Do not equate non-personalized ads with no collection or declare legal compliance from code alone.
 
-### FF-11 — P2: strict type checking and hosted runtime checks are incomplete
+### FF-11 — P2: boundary types and hosted runtime checks remain incomplete — partially improved
 
-- Evidence/files: tsconfig excludes `supabase/functions`; inherited Expo config does not enable `strict`. `any` remains in provider normalization, restaurant details, Auth mapping and screens. Handler tests transpile TypeScript without Deno type validation. Deno is unavailable on this machine's PATH.
-- Plan/benefit: introduce shared explicit detail/provider contracts, enable selected stricter compiler options incrementally, add Deno checking in a separate reviewed tooling change. Catch malformed responses and interface drift earlier.
-- Complexity: medium; do not flip strict globally without resolving failures. Verify app tsc, Deno check and fixture-based contracts; no claim backend is statically verified today.
+- Correction to initial assessment: installed TypeScript 6.0.3 defaults strict checking on even though Expo's config omits the flag. Verified with `getStrictOptionValue({}, "strictNullChecks") === true`; the earlier statement that app strict checking was off was incorrect. `strict: true` is now explicit to preserve intent across tool changes. Ignored verification/release exports are excluded from app checking.
+- Evidence/files: tsconfig still excludes `supabase/functions`. Handler tests transpile without Deno type validation; Deno is unavailable in PATH. Some provider/Auth fields still use `any`.
+- Follow-up: explicit RestaurantDetails/RestaurantReview types replace detail-screen `any`, exposing three nullable link callbacks that were guarded. City/detail coordinate fields now require finite numbers within geographic bounds; malformed names/details fail with a controlled error. Two new contract regressions failed before correction and pass afterward. This is partial response validation, not a claim every nested field is validated.
+- Plan/benefit: continue typed provider/search normalization and add Deno checking in a reviewed tooling change. Medium effort; verify app tsc, Deno and malformed-payload fixtures without weakening real-data attribution.
 
 ### FF-12 — P2: large stateful screens and custom test harnesses raise maintenance risk
 
@@ -105,15 +106,21 @@ The architecture is appropriate for the product. RLS, RPC authorization, server-
 - Plan/benefit: alerts and runbook covering auth/email/provider outage, quota reset, expired credentials, rollback, backups and testflight/release versions. Measure representative multi-room load in staging with fake provider data, not billable production traffic.
 - Complexity: medium; owner-approved external monitoring if selected. Verify alert delivery and recovery exercise; never log credentials/coordinates/emails to gain observability.
 
-## Suspected issues requiring reproduction, not confirmed defects
+## Race investigations — confirmed and corrected in follow-up
 
-### FF-16 — P2: room service identity races
+### FF-16 — P1: delayed room RPCs can use a changed identity — fixed locally
 
-`services/rooms.ts` obtains a session and later uses ambient client auth for RPC/storage; unlike library writes it does not bind an explicit captured bearer token. UI revision guards reject late responses but do not prove an operation cannot execute after an identity change. Add delayed-session/RPC tests before changing behavior; consider captured identity/token and owner-key storage, preserving RLS. Medium effort; real auth timing and guest creation matter. No cross-account vote leak was demonstrated.
+- Evidence/files: `services/rooms.ts` called RPC using ambient auth after obtaining a session. Deferred-dispatch and deferred local-storage fixtures reproduced execution as Bob for a request started under Alice. The installed Supabase fetch wrapper only supplies Authorization if absent, confirming explicit query headers are honored.
+- Correction: capture matching token/session owner, fail safely if those disagree, set explicit bearer header on room RPC, and restore a saved room using the same captured owner/token across the storage await. Existing UI revision guards still prevent late results from being displayed after account switches. No privilege escalation or production incident was established; server RLS remains authoritative.
+- Complexity/risk: small/medium; no API/schema change. Tokens can expire/change while requests are pending; normal server rejection/retry applies. Verified delayed vote, delayed restore, network retention and owner-specific expiry cleanup. Native real-auth/session-change retest still open.
 
-### FF-17 — P2: library hydration versus an in-flight mutation
+### FF-17 — P1: Saved hydration can hide a successful in-flight save — fixed locally
 
-LibraryProvider creates a new PersistentLibrary on hydration/reload; pending mutations on the previous store can finish after a new read started. Existing guards prevent previous-account data publication, but same-account save/hydrate sequencing lacks a reproduction test. Use deferred read/write fixtures to determine whether the visible library can momentarily omit a successful save; preserve optimistic server revisions. Medium effort; do not replace state management on suspicion alone.
+- Evidence/files: LibraryProvider created a replacement store/read while a previous same-account save was pending. A test using the real PersistentLibrary and deferred storage reproduced an empty displayed list after the save succeeded, including two consecutive reloads. This was a stale view, not demonstrated permanent server data loss.
+- Correction: place loads and mutations in the same promise queue; replacement same-account stores inherit the previous queue before reading. Consecutive reloads inherit the pending read/write barrier too. Account switches never wait on another user's queue and retain the existing immediate privacy guards.
+- Complexity/risk: small/medium; a pending same-account write delays hydration. Existing cloud library reads/writes lack their own explicit request timeout; prolonged provider stalls remain operational work. Verify deferred success/failure, queued writes, reload chains and account transitions; phone sync testing remains required.
+
+## Optional follow-up
 
 ### FF-18 — P3: ad consent retry and optional web accessibility improvements
 

@@ -25,13 +25,13 @@ No database migration or hosted deployment was performed. Existing builds do not
 
 ## Sequence 2 — strengthen boundaries before broad beta
 
-- [ ] FF-16 reproduce delayed room session changes; bind RPC/storage to captured identity if demonstrated.
-- [ ] FF-17 reproduce save-vs-hydration races; serialize appropriately without sacrificing account isolation.
-- [ ] FF-11 explicit provider/detail contracts, incremental strictness and Deno checks.
+- [x] FF-16 reproduced delayed vote/restore identity retargeting; bind RPC and restore to captured owner/token. Native Auth-transition test remains.
+- [x] FF-17 reproduced save-vs-hydration race with real storage class; serialize replacement reads behind pending same-account writes, including repeated reloads.
+- [ ] FF-11 partially complete: typed details/reviews, coordinate guards and explicit strict intent; provider-wide contracts and Deno checks remain.
 - [ ] FF-13 dry-run anonymous-user retention design; approval before any deletion job.
 - [ ] FF-15 operational monitoring/runbook/alert and restore exercise; record owners and measured outcomes.
 - [ ] Auth two-device sync/conflict/deletion and second inbox; VoiceOver/large-text/small-screen/offline acceptance.
-- [ ] Run prepared CI remotely, then configure required checks only after successful execution. No Actions success is inferred from local tests.
+- [x] Initial hosted CI succeeded (run 39292960066). Verify follow-up commits too; branch protection still requires separate account configuration.
 
 ## Sequence 3 — simplify when evidence justifies it
 
