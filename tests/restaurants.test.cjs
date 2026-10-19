@@ -277,3 +277,38 @@ test("startup waits for saved preferences instead of issuing an unfiltered searc
   assert.equal(calls[0].keyword, "tacos");
   assert.equal(result.currentRestaurant.id, "a");
 });
+
+test("disabled discovery does not request location permission until enabled", async () => {
+  let permissions = 0;
+  const app = harness(
+    async () => ({ results: [place("ready")] }),
+    async () => {
+      permissions++;
+      return { status: "granted" };
+    },
+  );
+  app.filters({ enabled: false });
+  await app.flush();
+  assert.equal(permissions, 0);
+  app.filters({ enabled: true });
+  assert.equal((await app.flush()).currentRestaurant.id, "ready");
+  assert.equal(permissions, 1);
+});
+
+test("failed switch from manual city to device location cannot retry the old city", async () => {
+  const calls = [];
+  const app = harness(async (params) => {
+    calls.push(params);
+    return { results: [place("manual-city")] };
+  }, "denied");
+  app.filters({ searchLocation: { latitude: 40, longitude: -74 } });
+  assert.equal((await app.flush()).currentRestaurant.id, "manual-city");
+  app.filters({});
+  let result = await app.flush();
+  assert.equal(result.currentRestaurant, undefined);
+  assert.match(result.error, /denied/);
+  result.refreshRestaurants();
+  result = await app.flush();
+  assert.match(result.error, /denied/);
+  assert.equal(calls.length, 1);
+});

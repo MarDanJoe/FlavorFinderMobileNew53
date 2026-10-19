@@ -76,9 +76,10 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [location, setLocation] = useState<Location.LocationObject | null>(
-    null,
-  );
+  const [resolvedLocation, setResolvedLocation] = useState<{
+    key: string;
+    position: Location.LocationObject;
+  } | null>(null);
   const [locationRetry, setLocationRetry] = useState(0);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const nextPageToken = useRef<string | undefined>(undefined);
@@ -91,9 +92,26 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
   const openNow = params?.openNow ?? false;
   const prices = JSON.stringify(params?.price ?? []);
   const enabled = params?.enabled !== false;
+  // Coordinates belong to a specific selection/retry. Never reuse the previous
+  // city's position while a new device-location request is pending or denied.
+  const locationKey = JSON.stringify([
+    enabled,
+    locationRetry,
+    params?.searchLocation?.latitude,
+    params?.searchLocation?.longitude,
+  ]);
+  const location =
+    resolvedLocation?.key === locationKey ? resolvedLocation.position : null;
 
   useEffect(() => {
     let active = true;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+    const setLocation = (position: Location.LocationObject) => {
+      if (active) setResolvedLocation({ key: locationKey, position });
+    };
     setLoading(true);
     setError(null);
     (async () => {
@@ -154,11 +172,7 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     return () => {
       active = false;
     };
-  }, [
-    locationRetry,
-    params?.searchLocation?.latitude,
-    params?.searchLocation?.longitude,
-  ]);
+  }, [locationKey]);
 
   const fetchPage = useCallback(
     async (firstPage: boolean, requestGeneration: number) => {
