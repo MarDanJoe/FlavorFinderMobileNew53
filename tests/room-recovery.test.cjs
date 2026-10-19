@@ -17,6 +17,8 @@ function harness() {
     ["flavorfinder_room_bob", "OTHER"],
   ]);
   let identity = "alice";
+  let dispatchIdentity;
+  let readIdentity;
   let response = {
     data: {
       code: "ABC123",
@@ -28,20 +30,33 @@ function harness() {
   };
   const calls = [];
   const storage = {
-    getItem: async (key) => stored.get(key) ?? null,
+    getItem: async (key) => {
+      const value = stored.get(key) ?? null;
+      if (readIdentity) identity = readIdentity;
+      return value;
+    },
     removeItem: async (key) => stored.delete(key),
   };
   const client = {
     auth: {
       getSession: async () => ({
-        data: { session: { user: { id: identity } } },
+        data: { session: { user: { id: identity }, access_token: identity } },
       }),
     },
     rpc: (name, args) => {
-      calls.push({ name, args });
+      const call = { name, args };
+      calls.push(call);
       return {
-        abortSignal: async () =>
-          typeof response === "function" ? response() : response,
+        setHeader(name, value) {
+          if (name === "Authorization")
+            call.token = value.replace("Bearer ", "");
+          return this;
+        },
+        abortSignal: async () => {
+          if (dispatchIdentity) identity = dispatchIdentity;
+          call.executedAs = call.token ?? identity;
+          return typeof response === "function" ? response() : response;
+        },
       };
     },
   };
@@ -51,7 +66,7 @@ function harness() {
       if (name === "@react-native-async-storage/async-storage") return storage;
       if (name === "expo-crypto") return { randomUUID: () => "unused" };
       if (name === "./supabase")
-        return { supabase: client, restaurantSession: async () => {} };
+        return { supabase: client, restaurantSession: async () => identity };
       throw new Error(`Unexpected module ${name}`);
     });
     return exports;
@@ -62,6 +77,8 @@ function harness() {
     load,
     setResponse: (value) => (response = value),
     setIdentity: (value) => (identity = value),
+    switchAtDispatch: (value) => (dispatchIdentity = value),
+    switchAfterRead: (value) => (readIdentity = value),
   };
 }
 test("reopening the app restores the shared deck and only the caller's recorded votes", async () => {
@@ -107,4 +124,21 @@ test("no saved room avoids a backend request", async () => {
   app.stored.clear();
   assert.equal(await app.load().restorePreviousRoom(), null);
   assert.equal(app.calls.length, 0);
+});
+
+test("a delayed vote keeps the captured caller token when the active account changes", async () => {
+  const app = harness();
+  app.switchAtDispatch("bob");
+  await app
+    .load()
+    .roomAction("vote", "ABC123", { place: "place1", liked: true });
+  assert.equal(app.calls[0].executedAs, "alice");
+});
+
+test("restoring a room keeps its storage owner token across a delayed local read", async () => {
+  const app = harness();
+  app.switchAfterRead("bob");
+  await app.load().restorePreviousRoom();
+  assert.equal(app.calls[0].executedAs, "alice");
+  assert.equal(app.stored.get("flavorfinder_room_bob"), "OTHER");
 });
