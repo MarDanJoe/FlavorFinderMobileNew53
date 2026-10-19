@@ -2,6 +2,36 @@ import { placesFetch } from "./supabase";
 import { DEMO_MODE } from "../config/demo";
 import { demoPlaces, demoRestaurant } from "../config/demoData";
 import { ENV } from "../config/env";
+import type { Restaurant } from "../hooks/useRestaurants";
+
+export interface RestaurantReview {
+  author_name?: string;
+  author_url?: string;
+  author_photo?: string;
+  source_uri?: string;
+  rating?: number;
+  text?: string;
+  relative_time_description?: string;
+  visit_date?: { year: number; month: number; day?: number };
+}
+export interface RestaurantDetails extends Restaurant {
+  opening_hours?: { open_now?: boolean; weekday_text?: string[] };
+  reviews?: RestaurantReview[];
+}
+function coordinates(latitude: unknown, longitude: unknown) {
+  if (
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  )
+    throw new Error(
+      "Restaurant service returned invalid coordinates. Please try again.",
+    );
+  return { latitude, longitude };
+}
 
 // Restaurant search function using Google Places API
 export const searchRestaurants = async (params: {
@@ -51,7 +81,6 @@ export const searchRestaurants = async (params: {
 // Share only requests that are currently running; never retain provider results
 // as a persistent or background cache.
 const pendingDetails = new Map<string, Promise<RestaurantDetails>>();
-type RestaurantDetails = Awaited<ReturnType<typeof loadRestaurantById>>;
 export const getRestaurantById = (placeId: string, basic = false) => {
   const key = `${basic ? "basic" : "full"}:${placeId}`;
   const existing = pendingDetails.get(key);
@@ -62,7 +91,10 @@ export const getRestaurantById = (placeId: string, basic = false) => {
   pendingDetails.set(key, pending);
   return pending;
 };
-const loadRestaurantById = async (placeId: string, basic = false) => {
+const loadRestaurantById = async (
+  placeId: string,
+  basic = false,
+): Promise<RestaurantDetails> => {
   if (DEMO_MODE) return demoRestaurant(placeId);
   try {
     const data = await placesFetch(
@@ -76,6 +108,12 @@ const loadRestaurantById = async (placeId: string, basic = false) => {
     }
 
     const place = data.result;
+    if (typeof place?.name !== "string" || !place.name.trim())
+      throw new Error("Restaurant details are unavailable. Please try again.");
+    const position = coordinates(
+      place.geometry?.location?.lat,
+      place.geometry?.location?.lng,
+    );
     return {
       id: placeId,
       name: place.name,
@@ -101,12 +139,9 @@ const loadRestaurantById = async (placeId: string, basic = false) => {
         state: "",
         zip_code: "",
       },
-      coordinates: {
-        latitude: place.geometry.location.lat,
-        longitude: place.geometry.location.lng,
-      },
+      coordinates: position,
       distance: 0, // We don't have user location here
-      phone: place.formatted_phone_number,
+      phone: place.formatted_phone_number ?? "",
       website: place.website,
       opening_hours: place.opening_hours,
       reviews: place.reviews,
@@ -123,8 +158,10 @@ export async function findSearchLocation(query: string) {
   if (!data.result?.location)
     throw new Error("No location found. Try a city and state or ZIP code.");
   return {
-    latitude: data.result.location.latitude as number,
-    longitude: data.result.location.longitude as number,
+    ...coordinates(
+      data.result.location.latitude,
+      data.result.location.longitude,
+    ),
     label:
       data.result.formattedAddress || data.result.displayName?.text || query,
   };

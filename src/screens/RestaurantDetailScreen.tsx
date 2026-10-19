@@ -15,7 +15,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { getRestaurantById } from "../services/api";
+import { getRestaurantById, type RestaurantDetails } from "../services/api";
 import type { Restaurant } from "../hooks/useRestaurants";
 import { useLibrary } from "../contexts/LibraryContext";
 import { GoogleAttribution } from "../components/GoogleAttribution";
@@ -30,7 +30,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const library = useLibrary();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [details, setDetails] = useState<any>(null);
+  const [details, setDetails] = useState<RestaurantDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -253,7 +253,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                   accessibilityRole="link"
                   accessibilityLabel="Open restaurant website to look for the menu"
                   accessibilityHint="Opens an external website; a menu may not be available."
-                  onPress={() => openLink(details.website)}
+                  onPress={() => {
+                    if (details?.website) void openLink(details.website);
+                  }}
                   style={[layout.primary, { flexDirection: "row", gap: 10 }]}
                 >
                   <Ionicons name="globe-outline" size={20} color="#fff" />
@@ -279,8 +281,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 name: "call-outline" as const,
                 title: "Call",
                 enabled: !!details?.phone && !DEMO_MODE,
-                action: () =>
-                  openLink(`tel:${details.phone.replace(/[^+\d]/g, "")}`),
+                action: () => {
+                  if (details?.phone)
+                    void openLink(
+                      `tel:${details.phone.replace(/[^+\d]/g, "")}`,
+                    );
+                },
               },
             ].map((action) => (
               <TouchableOpacity
@@ -317,7 +323,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               {" "}
               {restaurant.categories
                 .filter(
-                  (c: any) =>
+                  (c) =>
                     ![
                       "point_of_interest",
                       "establishment",
@@ -325,7 +331,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                       "restaurant",
                     ].includes(c.alias),
                 )
-                .map((c: any) => c.title)
+                .map((c) => c.title)
                 .join(" · ") || "Restaurant"}
             </Text>
           </View>
@@ -347,7 +353,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               >
                 Reviews selected by Google Maps, ordered by relevance.
               </Text>
-              {details.reviews.map((review: any, index: number) => (
+              {details.reviews.map((review, index) => (
                 <View key={index} style={styles.review}>
                   <View
                     style={[layout.row, { justifyContent: "space-between" }]}
@@ -370,7 +376,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                     </TouchableOpacity>
                     {!!review.source_uri && (
                       <TouchableOpacity
-                        onPress={() => void openLink(review.source_uri)}
+                        onPress={() => {
+                          if (review.source_uri)
+                            void openLink(review.source_uri);
+                        }}
                       >
                         <Text style={{ color: colors.green, fontSize: 12 }}>
                           View review on Google Maps

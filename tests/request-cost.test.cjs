@@ -169,3 +169,56 @@ test("partial Saved failures preserve IDs and successful rows without automatic 
     .getItem("guest");
   assert.deepEqual(calls, ["a", "b", "c", "b"]);
 });
+
+test("city lookup rejects invalid provider coordinates instead of searching a wrong area", async () => {
+  let location;
+  const mod = moduleAt("src/services/api.ts", {
+    "./supabase": {
+      placesFetch: async () => ({
+        result: { location, formattedAddress: "City" },
+      }),
+    },
+    "../config/demo": { DEMO_MODE: false },
+    "../config/demoData": {},
+    "../config/env": {
+      ENV: { API: { BASE_URL: "https://example.invalid/places" } },
+    },
+  });
+  for (location of [
+    { latitude: "40", longitude: -74 },
+    { latitude: 91, longitude: 0 },
+    { latitude: 0, longitude: NaN },
+    { latitude: 0 },
+  ]) {
+    await assert.rejects(
+      mod.findSearchLocation("City"),
+      /location|coordinates/i,
+    );
+  }
+  location = { latitude: 0, longitude: 0 };
+  assert.deepEqual(await mod.findSearchLocation("City"), {
+    latitude: 0,
+    longitude: 0,
+    label: "City",
+  });
+});
+
+test("restaurant details reject malformed geometry and expose a controlled error", async () => {
+  const mod = moduleAt("src/services/api.ts", {
+    "./supabase": {
+      placesFetch: async () => ({
+        status: "OK",
+        result: {
+          name: "Cafe",
+          geometry: { location: { lat: 40, lng: "bad" } },
+        },
+      }),
+    },
+    "../config/demo": { DEMO_MODE: false },
+    "../config/demoData": {},
+    "../config/env": {
+      ENV: { API: { BASE_URL: "https://example.invalid/places" } },
+    },
+  });
+  await assert.rejects(mod.getRestaurantById("a"), /coordinates/i);
+});
