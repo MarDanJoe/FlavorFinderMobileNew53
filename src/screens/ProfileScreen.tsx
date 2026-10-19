@@ -1,3 +1,4 @@
+import { AdPrivacyOptions } from "../components/SavedAd";
 import { LegalLinks } from "../components/LegalLinks";
 import React, { useState } from "react";
 import {
@@ -269,6 +270,7 @@ export default function ProfileScreen() {
             Sample data · Changes stay on this device
           </Text>
         )}
+        <AdPrivacyOptions />
         <LegalLinks />
       </ScrollView>
       <FilterSheet

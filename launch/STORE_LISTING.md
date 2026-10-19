@@ -44,7 +44,7 @@ Capture from the signed production app at Apple's required dimensions. Keep Goog
 
 ## App Review notes
 
-Flavor Finder uses Google Places API (New). No ads, paid memberships or in-app purchases are included in this version. Location access is optional: use Change location and enter a city or ZIP code. Guest sessions support discovery, local favorites and voting; email/password registration is optional for cloud favorites/preferences. Room membership belongs to the session that joined.
+Flavor Finder uses Google Places API (New). The next internal build includes a Google test banner on Saved. Live advertising is not enabled yet; revise final store metadata/privacy answers before enabling live inventory. No paid memberships or in-app purchases are included. Location access is optional: use Change location and enter a city or ZIP code. Guest sessions support discovery, local favorites and voting; email/password registration is optional for cloud favorites/preferences. Room membership belongs to the session that joined.
 
 Suggested review path:
 1. Continue as guest and search a city (for example Columbus, Ohio). Open a restaurant detail to view Google/source credits.

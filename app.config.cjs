@@ -1,3 +1,4 @@
+const admob = require("./src/config/admob.json");
 const { validateRelease } = require("./scripts/release-config.cjs");
 module.exports = ({ config }) => {
   if (["production", "preview"].includes(process.env.EAS_BUILD_PROFILE)) {
@@ -12,6 +13,18 @@ module.exports = ({ config }) => {
   }
   return {
     ...config,
+    plugins: [
+      ...(config.plugins || []),
+      [
+        "react-native-google-mobile-ads",
+        {
+          iosAppId: admob.iosAppId,
+          androidAppId: "ca-app-pub-3940256099942544~3347511713",
+          delayAppMeasurementInit: true,
+          skAdNetworkItems: ["cstr6suwn9.skadnetwork"],
+        },
+      ],
+    ],
     ios: {
       ...config.ios,
       bundleIdentifier:

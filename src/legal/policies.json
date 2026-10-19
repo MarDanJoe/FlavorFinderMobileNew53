@@ -1,7 +1,7 @@
 {
   "operator": "Flavor Finder",
   "supportEmail": "ohlqcommunity@gmail.com",
-  "updated": "September 30, 2026",
+  "updated": "October 19, 2026",
   "privacy": {
     "title": "Privacy Policy",
     "intro": "Flavor Finder helps you discover places to eat and choose together with friends. This policy describes the current US service and how we handle information.",
@@ -20,7 +20,7 @@
       },
       {
         "title": "Our service providers",
-        "text": "Google Maps Platform supplies restaurant information, photos and reviews and processes restaurant queries. Supabase hosts authentication, database records and backend functions. Brevo delivers account confirmation and recovery emails and processes sender and recipient addresses, message content and delivery events. Email activity may include open events when a mail client loads an embedded tracking image. These providers process data under their service terms and privacy policies, and may process it outside your state or country."
+        "text": "Google AdMob supplies advertising in versions with ads enabled. Google Maps Platform supplies restaurant information, photos and reviews and processes restaurant queries. Supabase hosts authentication, database records and backend functions. Brevo delivers account confirmation and recovery emails and processes sender and recipient addresses, message content and delivery events. Email activity may include open events when a mail client loads an embedded tracking image. These providers process data under their service terms and privacy policies, and may process it outside your state or country."
       },
       {
         "title": "Retention and deletion",
@@ -32,7 +32,7 @@
       },
       {
         "title": "Advertising, purchases and children",
-        "text": "The current app has no advertising SDK, paid membership, advertising identifier collection or cross-app advertising tracking. If we introduce advertising or payments, we will update the policy and required permissions before enabling them. Flavor Finder is intended for a general audience and is not directed to children under 13. Contact us if you believe a child has provided personal information."
+        "text": "New versions of Flavor Finder include Google AdMob banner advertising on Saved. Internal testing uses Google test ads, which do not earn revenue. We request non-personalized ads and do not pass restaurant searches, precise location, account details, favorites or votes to the ad SDK. Google may process IP addresses (including for approximate location), app or device identifiers, ad impressions and interactions, diagnostics and performance information to serve, measure and protect advertising. Non-personalized advertising still involves data processing. We use Google’s consent tools before requesting ads and provide Profile → Ad privacy choices when Google indicates regional privacy options are required. We do not request Apple’s tracking permission or intentionally access IDFA. No paid membership or purchases are included. Flavor Finder is intended for a general audience and is not directed to children under 13. Contact us if you believe a child has provided personal information."
       },
       {
         "title": "Security and policy updates",
@@ -51,6 +51,10 @@
       {
         "label": "Brevo Privacy Policy",
         "url": "https://www.brevo.com/legal/privacypolicy/"
+      },
+      {
+        "label": "How Google uses information from apps that use its services",
+        "url": "https://policies.google.com/technologies/partner-sites"
       }
     ]
   },

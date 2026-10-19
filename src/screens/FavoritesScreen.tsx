@@ -1,3 +1,4 @@
+import { SavedAd } from "../components/SavedAd";
 import { DEMO_MODE } from "../config/demo";
 import React, { useEffect, useState } from "react";
 import {
@@ -288,6 +289,7 @@ export default function FavoritesScreen() {
           }
         />
       )}
+      {ready && favorites.length > 0 && <SavedAd />}
     </SafeAreaView>
   );
 }
