@@ -228,3 +228,35 @@ test("request metrics distinguish forwarded and blocked calls without private re
     assert.ok(!JSON.stringify(event).includes("server-only-secret"));
   }
 });
+
+test("deletion rejects malformed authentication-method claims without crashing or deleting", async () => {
+  let deleted = false;
+  const f = functionHandler("supabase/functions/delete-account/index.ts", {
+    user: { id: "real-user", is_anonymous: false },
+    admin: {
+      auth: {
+        admin: {
+          deleteUser: async () => {
+            deleted = true;
+            return { error: null };
+          },
+        },
+      },
+    },
+  });
+  for (const amr of [
+    { method: "password" },
+    [null],
+    [{ method: "password", timestamp: String(Date.now() / 1000) }],
+  ]) {
+    const response = await f.handler(
+      new Request("https://project.supabase.co/functions/v1/delete-account", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token(amr)}` },
+        body: JSON.stringify({ confirm: true }),
+      }),
+    );
+    assert.equal(response.status, 403);
+    assert.equal(deleted, false);
+  }
+});

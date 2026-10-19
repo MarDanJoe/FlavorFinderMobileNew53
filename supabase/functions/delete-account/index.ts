@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     return json({ error: "Registered account required" }, 403);
   // Validate a recent password-authenticated session on the server, not only in the UI.
   const token = req.headers.get("authorization")!.slice(7);
-  let claims: { iat?: number; amr?: { method: string; timestamp: number }[] };
+  let claims: { amr?: unknown } | null;
   try {
     const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
     claims = JSON.parse(
@@ -23,9 +23,13 @@ Deno.serve(async (req) => {
   }
   const now = Date.now() / 1000;
   if (
-    !claims.amr?.some(
+    !Array.isArray(claims?.amr) ||
+    !claims.amr.some(
       (entry) =>
+        entry !== null &&
+        typeof entry === "object" &&
         entry.method === "password" &&
+        Number.isFinite(entry.timestamp) &&
         now - entry.timestamp < 300 &&
         entry.timestamp <= now + 30,
     )
