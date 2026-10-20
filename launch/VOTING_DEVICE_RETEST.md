@@ -21,3 +21,8 @@ Owner's two-person test found that a right card swipe could leave the voting scr
 6. Restart/reconnect and confirm submitted votes are restored. A failed vote must keep the card available and explain retry. Measure requests with fresh before/after counters and categorized logs rather than inferring charges.
 
 Automated UI simulations verify responder ownership/scroll lock, right Like/left Pass, duplicate release guard, cancellation, missing-card gate and independent host filters/location/confirmed IDs. Native iOS navigation arbitration still requires this physical retest.
+
+
+## October 20 build 13 feedback
+
+Owner installed build 13. Saved test banner/placement and returning from restaurant detail to Saved passed by owner report. During room setup, owner found cuisine absent from filters and no way to cancel from the nickname/create page. Confirmed source omission: FilterSheet had distance/price/rating/hours but no cuisine controls. Added cuisine chips (All flavors, Pizza, Tacos, Japanese, Burgers, Brunch) to the shared sheet, preserving the rest of the draft. Added a visible accessible cancel/back control on the pre-create host page, disabled during a request; this goes back without creating a hosted room. Existing Change area or filters action remains. Regression tests cover selecting/applying cuisine with other settings and cancel/edit navigation with no room RPC. These fixes need a new signed build; they are not present in installed build 13. Retest both paths on the next build, then continue two-phone voting cases above.

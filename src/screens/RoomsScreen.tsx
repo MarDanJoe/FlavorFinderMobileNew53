@@ -330,6 +330,24 @@ export default function RoomsScreen({
           { paddingTop: 24, paddingBottom: 32 },
         ]}
       >
+        {!room && !!route?.params?.deck && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Cancel room setup and go back"
+            disabled={busy}
+            accessibilityState={{ disabled: busy }}
+            onPress={() => navigation.goBack()}
+            style={{
+              minHeight: 48,
+              justifyContent: "center",
+              marginBottom: 12,
+            }}
+          >
+            <Text style={{ color: colors.green }}>
+              Back · Cancel room setup
+            </Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.eyebrow}>FLAVOR FINDER · EAT TOGETHER</Text>
         <Text style={[layout.title, { marginTop: 10 }]}>
           {room?.status === "finished"

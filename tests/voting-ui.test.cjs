@@ -56,6 +56,7 @@ function harness(file, seeded = []) {
     TouchableOpacity: "Button",
     View: "View",
     TextInput: "TextInput",
+    Switch: "Switch",
     StyleSheet: { create: (v) => v },
     AppState: { currentState: "active" },
     Share: { share: async () => {} },
@@ -83,6 +84,8 @@ function harness(file, seeded = []) {
     "@react-navigation/native": { useIsFocused: () => true },
     "../theme": { colors: {}, layout: {} },
     "../services/library": { defaultPreferences: defaults },
+    "../contexts/LibraryContext": { defaultPreferences: defaults },
+    "@expo/vector-icons/Ionicons": "Icon",
     "../components/FilterSheet": { FilterSheet: "Filters" },
     "../components/LocationPicker": { LocationPicker: "Location" },
     "../hooks/useRestaurants": {
@@ -150,7 +153,10 @@ function harness(file, seeded = []) {
     },
     render(props = {}) {
       cursor = 0;
-      return (tree = exports.default({ navigation, ...props }));
+      return (tree = (exports.default ?? exports.FilterSheet)({
+        navigation,
+        ...props,
+      }));
     },
     nodes,
     button(label) {
@@ -307,4 +313,40 @@ test("left swipe casts pass and missing cards cannot claim a voting drag", async
     h.pan.onMoveShouldSetPanResponder(null, { dx: 120, dy: 0 }),
     false,
   );
+});
+
+test("room filter sheet offers cuisine and applies it with the other room settings", () => {
+  const h = harness("src/components/FilterSheet.tsx");
+  let applied;
+  const props = {
+    visible: true,
+    value: {
+      radius: 16093,
+      rating: 4,
+      cuisine: "",
+      price: ["$$"],
+      openNow: true,
+    },
+    onClose() {},
+    onApply: (p) => {
+      applied = p;
+    },
+  };
+  h.render(props);
+  assert.equal(h.button("All flavors").props.accessibilityState.selected, true);
+  h.button("Japanese").props.onPress();
+  h.render(props);
+  assert.equal(h.button("Japanese").props.accessibilityState.selected, true);
+  h.button("Find my flavor").props.onPress();
+  assert.deepEqual(applied, { ...props.value, cuisine: "japanese" });
+});
+
+test("host can cancel before creating a room or return to change the search", () => {
+  const h = harness("src/screens/RoomsScreen.tsx");
+  h.render({ route: { params: { deck: ["a", "b"] } } });
+  h.button("Back · Cancel room setup").props.onPress();
+  assert.deepEqual(h.navigationCalls, [["back"]]);
+  assert.deepEqual(h.actions, []);
+  h.button("Change area or filters").props.onPress();
+  assert.deepEqual(h.navigationCalls[1], ["replace", "RoomSetup"]);
 });

@@ -92,6 +92,21 @@ export function FilterSheet({
             </TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.label}>CUISINE</Text>
+            {chips(
+              [
+                { label: "All flavors", value: "" },
+                { label: "Pizza", value: "pizza" },
+                { label: "Tacos", value: "tacos" },
+                { label: "Japanese", value: "japanese" },
+                { label: "Burgers", value: "burgers" },
+                { label: "Brunch", value: "brunch" },
+              ].map((cuisine) => ({
+                label: cuisine.label,
+                selected: draft.cuisine === cuisine.value,
+                action: () => setDraft({ ...draft, cuisine: cuisine.value }),
+              })),
+            )}
             <Text style={styles.label}>HOW FAR?</Text>
             {chips(
               [1, 5, 10, 15].map((miles) => ({
