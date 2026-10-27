@@ -58,3 +58,8 @@ Provider load/cost checks require fresh before/after counters and categorized fo
 - Fresh npm audit still reports 17 high entries. No packages changed. See launch/DEPENDENCY_REVIEW.md for exposure evidence and remaining limitations.
 
 Final follow-up local evidence: **68/68 tests passed**, zero failures/skips; app TypeScript passed. iOS JS export succeeded (1,130 modules, 2.5 MB Hermes bundle plus 6.7 MB source map); 1,088 mapped source entries contain none of the three investigated advisory-chain packages. Source-map/export settings differ from the earlier export, so sizes are not a performance comparison. Hosted checks for these follow-up commits must be observed separately. No phone or hosted-backend changes are implied by these fixtures.
+
+
+## October 27: photos and sorting
+
+78 tests passed, zero failures/skips; TypeScript, full configured formatting and diff checks passed. iOS JavaScript export succeeded (1,130 modules, 3.1 MB bundle) at /private/tmp/flavor-photos-sort-ios. New fixtures cover sort-only no-search and pagination positions; missing-price ordering and preference parsing; room summary/settings; 200px thumbnail delivery; direct source without app credentials; cancelled session lookup; optional photo response quota/auth path and legacy stream compatibility. See launch/PHOTO_AND_SORTING.md. No provider latency benchmark, phone retest, Deno check or hosted deployment performed. Direct photo delivery remains off until explicitly approved/deployed and enabled in a subsequent binary.

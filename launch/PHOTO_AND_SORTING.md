@@ -1,0 +1,26 @@
+# Photo delivery and sorting — October 27, 2026
+
+## Changes in the review branch
+
+Discover and independent group filters offer Recommended, Nearest first, Highest rated and both price directions. Selection persists in existing preferences JSON; no database schema change. Invalid/old preference values normalize to Recommended. A sort change reorders the loaded deck and resets the card index without another Places search. Unknown prices remain last in either direction; ties retain current order. Recommended restores the search order. Each later page is sorted before appending, preserving already-swiped card positions. This is sorting loaded results, not a global ranking of every restaurant in the area. UI explains the page limitation. Room hosts confirm the sorted IDs; participants retain the same frozen deck.
+
+Saved thumbnails request 200px instead of 400px. Discovery/detail cards retain 400px. A component discarded during session lookup stops before starting a photo request. No Image.prefetch, persistent photo cache, CDN mirroring or automatic retries were added.
+
+## Optional photo fast path — disabled until approved deployment
+
+The existing photo route gains an optional `delivery=url` query. After the same token/parameter/quota validation, Google is called once with `skipHttpRedirect=true`; the function returns only a validated HTTPS Google image CDN URI with no-store headers. The phone requests image bytes directly from Google's image host instead of relaying them through Supabase. App authorization and publishable-key headers are sent only to the authenticated app endpoint, never attached to the CDN image source. Allowed hosts are Google-owned googleusercontent.com/ggpht.com/gstatic.com subdomains; URLs with credentials/API key query or the server key are rejected. Photo/source attribution UI remains in place. Signed URL freshness is per display; no cross-session cache is introduced.
+
+Existing clients still receive streamed image bytes unless they opt in, so build 13 is compatible with the backend change. `EXPO_PUBLIC_DIRECT_PHOTOS` is false/unset by default and documented in .env.example. Nothing has been deployed or enabled in EAS. Deploy and verify the compatible backend revision first; enable the public flag only for a subsequent testing binary. That flag is public behavior configuration, not an authentication secret. One allowed photo call still consumes the existing shared quota; image sizes/direct delivery do not change Google pricing or remove requests.
+
+Owner's architecture-review prompt explicitly requires permission before production deployment. The concrete proposed change is the backward-compatible Places function photo response above, preserving limits/auth and existing response mode. Do not deploy delete-account merely because its local hardening exists on the branch. Save current hosted Places source/version first; roll back the function and leave the client flag off if acceptance fails.
+
+## Verification and limits
+
+Automated fixtures cover ordering, ties/missing prices, persistence normalization, sort-only no-search, pagination preserving consumed cards, host summary/confirmed settings, thumbnail width, removed-image cancellation, direct CDN source with no app headers, one provider call, quota enforcement, unsafe URL rejection and compatibility for older streamed-photo clients. No real Google calls were generated to benchmark this work. Deno is unavailable locally; mocked handler execution is not a hosted deployment/type check. App tsc, full tests, formatting, export and CI results are recorded in TESTING.md/checkpoints as completed.
+
+Real-device acceptance still required: loaded-card image latency/size/quality, Saved/details return paths, weak network/failure states, source links, independent host sorts/same participant deck, and before/after categorized provider counters. No measured millisecond/percentage speedup is claimed. Small thumbnails may look softer on high-density displays; assess before shipping.
+
+References checked October 27:
+- https://developers.google.com/maps/documentation/places/web-service/place-photos — official JSON photoUri/skipHttpRedirect path and size behavior.
+- https://developers.google.com/maps/documentation/places/web-service/policies — caching and attribution boundaries.
+- https://reactnative.dev/docs/image — prefetch downloads into disk cache; not used here.

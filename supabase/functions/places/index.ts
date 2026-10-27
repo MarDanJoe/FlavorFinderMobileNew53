@@ -11,6 +11,8 @@ async function handle(req: Request, usage: Usage) {
   if (req.method !== "GET") return json({ error: "Method not allowed" }, 405);
   const url = new URL(req.url);
   const route = url.pathname.split("/places/")[1];
+  const directPhoto =
+    route === "photo" && url.searchParams.get("delivery") === "url";
   if (route === "health") return json({ ok: true });
   if (
     !["nearbysearch/json", "details/json", "photo", "location/json"].includes(
@@ -40,7 +42,10 @@ async function handle(req: Request, usage: Usage) {
       endpoint = "places:searchText";
       mask = "places.displayName,places.location,places.formattedAddress";
       body = { textQuery: query, pageSize: 1 };
-    } else endpoint = photoResource(url.searchParams);
+    } else {
+      endpoint = photoResource(url.searchParams);
+      if (directPhoto) endpoint += "&skipHttpRedirect=true";
+    }
   } catch (e) {
     return json({ error_message: (e as Error).message }, 400);
   }
@@ -98,6 +103,27 @@ async function handle(req: Request, usage: Usage) {
     if (!upstream.ok)
       return json({ error_message: "Restaurant provider is unavailable" }, 502);
     if (route === "photo") {
+      if (directPhoto) {
+        const data = await upstream.json();
+        let photo;
+        try {
+          photo = new URL(data.photoUri);
+        } catch {
+          return json({ error_message: "Photo unavailable" }, 502);
+        }
+        if (
+          photo.protocol !== "https:" ||
+          photo.username ||
+          photo.password ||
+          !/^(?:[a-z0-9-]+\.)+(?:googleusercontent\.com|ggpht\.com|gstatic\.com)$/.test(
+            photo.hostname,
+          ) ||
+          photo.searchParams.has("key") ||
+          photo.href.includes(key)
+        )
+          return json({ error_message: "Photo unavailable" }, 502);
+        return json({ photoUri: photo.href });
+      }
       const type = upstream.headers.get("content-type") || "";
       if (!type.startsWith("image/"))
         return json({ error_message: "Photo unavailable" }, 502);

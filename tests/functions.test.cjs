@@ -260,3 +260,70 @@ test("deletion rejects malformed authentication-method claims without crashing o
     assert.equal(deleted, false);
   }
 });
+
+test("photo URL delivery preserves authentication/quota and makes one upstream call", async () => {
+  const photoUrl =
+    "https://project.supabase.co/functions/v1/places/photo?photoreference=places/a/photos/b&maxwidth=200&delivery=url";
+  const f = functionHandler(
+    placesFile,
+    { user: { id: "guest" } },
+    {
+      fetcher: async (url) => {
+        assert.equal(new URL(url).searchParams.get("skipHttpRedirect"), "true");
+        return Response.json({
+          photoUri: "https://lh3.googleusercontent.com/photo",
+        });
+      },
+    },
+  );
+  const response = await f.handler(new Request(photoUrl));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    photoUri: "https://lh3.googleusercontent.com/photo",
+  });
+  assert.equal(f.forwarded(), 1);
+  assert.equal(f.events[0].route, "photo");
+  const blocked = functionHandler(
+    placesFile,
+    { user: { id: "guest" } },
+    { permitted: false },
+  );
+  assert.equal((await blocked.handler(new Request(photoUrl))).status, 429);
+  assert.equal(blocked.forwarded(), 0);
+  for (const photoUri of [
+    "https://evil.test/image",
+    "http://lh3.googleusercontent.com/image",
+    "https://user:pass@lh3.googleusercontent.com/image",
+    "https://lh3.googleusercontent.com/image?key=secret",
+  ]) {
+    const invalid = functionHandler(
+      placesFile,
+      { user: { id: "guest" } },
+      { fetcher: async () => Response.json({ photoUri }) },
+    );
+    assert.equal((await invalid.handler(new Request(photoUrl))).status, 502);
+  }
+});
+
+test("older photo clients still receive streamed image bytes", async () => {
+  const f = functionHandler(
+    placesFile,
+    { user: { id: "guest" } },
+    {
+      fetcher: async (url) => {
+        assert.equal(new URL(url).searchParams.has("skipHttpRedirect"), false);
+        return new Response("photo-bytes", {
+          headers: { "content-type": "image/jpeg" },
+        });
+      },
+    },
+  );
+  const response = await f.handler(
+    new Request(
+      "https://project.supabase.co/functions/v1/places/photo?photoreference=places/a/photos/b&maxwidth=400",
+    ),
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(await response.text(), "photo-bytes");
+});

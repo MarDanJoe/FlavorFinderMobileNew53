@@ -178,6 +178,7 @@ export default function FavoritesScreen() {
                   }
                 >
                   <RestaurantImage
+                    thumbnail
                     uri={item.image_url}
                     style={{ width: 94, height: 104, borderRadius: 15 }}
                   />

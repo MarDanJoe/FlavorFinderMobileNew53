@@ -8,10 +8,16 @@ import { colors } from "../theme";
 export function RestaurantImage({
   uri,
   style,
+  thumbnail = false,
 }: {
   uri?: string;
   style?: StyleProp<ViewStyle>;
+  thumbnail?: boolean;
 }) {
+  const requestedUri =
+    thumbnail && uri?.startsWith(`${ENV.API.BASE_URL}/photo?`)
+      ? uri.replace(/maxwidth=\d+/, "maxwidth=200")
+      : uri;
   const [failed, setFailed] = useState(false);
   const [source, setSource] = useState<{
     uri: string;
@@ -22,17 +28,38 @@ export function RestaurantImage({
     let objectUrl: string | undefined;
     setFailed(false);
     setSource(null);
-    if (!uri) return;
+    if (!requestedUri) return;
     (async () => {
       try {
-        if (supabase && uri.startsWith(`${ENV.API.BASE_URL}/photo?`)) {
+        if (supabase && requestedUri.startsWith(`${ENV.API.BASE_URL}/photo?`)) {
           const token = await restaurantSession();
+          if (!active) return;
           const headers = {
             Authorization: `Bearer ${token}`,
             apikey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
           };
-          if (Platform.OS === "web") {
-            const response = await fetch(uri, {
+          if (process.env.EXPO_PUBLIC_DIRECT_PHOTOS === "true") {
+            const response = await fetch(`${requestedUri}&delivery=url`, {
+              headers,
+              signal: AbortSignal.timeout(15000),
+            });
+            if (!response.ok) throw new Error("Photo unavailable");
+            const data = await response.json();
+            const direct = new URL(data.photoUri);
+            if (
+              direct.protocol !== "https:" ||
+              direct.username ||
+              direct.password ||
+              !/^(?:[a-z0-9-]+\.)+(?:googleusercontent\.com|ggpht\.com|gstatic\.com)$/.test(
+                direct.hostname,
+              ) ||
+              direct.searchParams.has("key")
+            )
+              throw new Error("Photo unavailable");
+            // CDN source has no app authentication headers. No prefetch or persistent cache.
+            if (active) setSource({ uri: direct.href });
+          } else if (Platform.OS === "web") {
+            const response = await fetch(requestedUri, {
               headers,
               signal: AbortSignal.timeout(15000),
             });
@@ -40,8 +67,8 @@ export function RestaurantImage({
             objectUrl = URL.createObjectURL(await response.blob());
             if (active) setSource({ uri: objectUrl });
             else URL.revokeObjectURL(objectUrl);
-          } else if (active) setSource({ uri, headers });
-        } else if (active) setSource({ uri });
+          } else if (active) setSource({ uri: requestedUri, headers });
+        } else if (active) setSource({ uri: requestedUri });
       } catch {
         if (active) setFailed(true);
       }
@@ -50,7 +77,7 @@ export function RestaurantImage({
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [uri]);
+  }, [requestedUri]);
   return (
     <View style={[{ overflow: "hidden", backgroundColor: colors.soft }, style]}>
       {source && !failed ? (
