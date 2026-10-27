@@ -42,5 +42,6 @@ const html = fs
       : beta
         ? "Flavor Finder is in beta. Follow the TestFlight invitation to install it on your iPhone."
         : "Flavor Finder is currently invitation-only on TestFlight. Ask the person who invited you to arrange beta access. A public download link is not available yet.",
-  );
+  )
+  .replace(/[\t ]+$/gm, "");
 fs.writeFileSync(path.join(__dirname, "../docs/join.html"), html);
