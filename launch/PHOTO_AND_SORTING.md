@@ -6,11 +6,11 @@ Discover and independent group filters offer Recommended, Nearest first, Highest
 
 Saved thumbnails request 200px instead of 400px. Discovery/detail cards retain 400px. A component discarded during session lookup stops before starting a photo request. No Image.prefetch, persistent photo cache, CDN mirroring or automatic retries were added.
 
-## Optional photo fast path — disabled until approved deployment
+## Optional photo fast path — backend deployed; client still disabled
 
 The existing photo route gains an optional `delivery=url` query. After the same token/parameter/quota validation, Google is called once with `skipHttpRedirect=true`; the function returns only a validated HTTPS Google image CDN URI with no-store headers. The phone requests image bytes directly from Google's image host instead of relaying them through Supabase. App authorization and publishable-key headers are sent only to the authenticated app endpoint, never attached to the CDN image source. Allowed hosts are Google-owned googleusercontent.com/ggpht.com/gstatic.com subdomains; URLs with credentials/API key query or the server key are rejected. Photo/source attribution UI remains in place. Signed URL freshness is per display; no cross-session cache is introduced.
 
-Existing clients still receive streamed image bytes unless they opt in, so build 13 is compatible with the backend change. `EXPO_PUBLIC_DIRECT_PHOTOS` is false/unset by default and documented in .env.example. Nothing has been deployed or enabled in EAS. Deploy and verify the compatible backend revision first; enable the public flag only for a subsequent testing binary. That flag is public behavior configuration, not an authentication secret. One allowed photo call still consumes the existing shared quota; image sizes/direct delivery do not change Google pricing or remove requests.
+Existing clients still receive streamed image bytes unless they opt in, so build 13 is compatible with the backend change. `EXPO_PUBLIC_DIRECT_PHOTOS` is false/unset by default and documented in .env.example. Owner approved deployment on October 27. Places version 5 is ACTIVE and downloaded source matches all three tested files byte-for-byte. EAS client configuration is still unchanged; enable the public flag only for a subsequent testing binary. That flag is public behavior configuration, not an authentication secret. One allowed photo call still consumes the existing shared quota; image sizes/direct delivery do not change Google pricing or remove requests.
 
 Owner's architecture-review prompt explicitly requires permission before production deployment. The concrete proposed change is the backward-compatible Places function photo response above, preserving limits/auth and existing response mode. Do not deploy delete-account merely because its local hardening exists on the branch. Save current hosted Places source/version first; roll back the function and leave the client flag off if acceptance fails.
 
@@ -24,3 +24,15 @@ References checked October 27:
 - https://developers.google.com/maps/documentation/places/web-service/place-photos — official JSON photoUri/skipHttpRedirect path and size behavior.
 - https://developers.google.com/maps/documentation/places/web-service/policies — caching and attribution boundaries.
 - https://reactnative.dev/docs/image — prefetch downloads into disk cache; not used here.
+
+
+## October 27 production deployment evidence
+
+Owner explicitly approved deploying the compatible photo backend. Official Supabase CLI 2.122.0 login completed; deployed **only places** with API bundling and the existing platform verify_jwt=false configuration. Handler Auth.getUser checks remain. No SQL, secrets, caps, AdMob settings, delete-account function or EAS settings were changed.
+
+- Deployed revision: Places version **5**, ACTIVE; bundle hash `58ab5cc5341b806abec9a4c8ba7fdc16bae4618972820580832b0bdf6e587fb9`.
+- Downloaded post-deploy index.ts/provider.ts/_shared/auth.ts are byte-identical to tested source at commit 5455898.
+- Public health returned 200 `{ok:true}`. Unauthenticated normal search and delivery=url photo requests both returned 401, all with Cache-Control no-store. These checks made no Google calls.
+- Before-deploy hosted source matched prior reviewed implementation after local-import inlining. Original single-file SHA256: `a318f027546e4d554022255758d69f3a08e867a1f60aa015e91c46db4992fd71`.
+- Rollback copy retained outside Git under `verification/deployments/places-20261027-before/`; temporary complete CLI layout is `/private/tmp/flavor-places-before-20261027/`. Git source at aad2acf provides the prior reviewed implementation too.
+- Authenticated real-photo/CDN and iPhone latency tests remain pending; no anonymous test account or paid provider call was created merely for this deployment check. Existing build13 continues using the stream response. Client direct-photo flag remains off/unset until a subsequent testing build is configured.

@@ -103,3 +103,6 @@ verification/
 
 # Release validation exports
 dist-release/
+
+# Supabase CLI local project metadata
+supabase/.temp/
