@@ -30,6 +30,7 @@ import { getRestaurantById } from "../services/api";
 import { Restaurant } from "../hooks/useRestaurants";
 import { RestaurantImage } from "../components/RestaurantImage";
 import { GoogleAttribution } from "../components/GoogleAttribution";
+import { roomInviteMessage } from "../services/invites";
 import { DEMO_MODE } from "../config/demo";
 
 export default function RoomsScreen({
@@ -468,7 +469,7 @@ export default function RoomsScreen({
                   "Invite friends",
                   () => {
                     void Share.share({
-                      message: `Help pick dinner on Flavor Finder! Room code: ${room.code}\nflavorfinder://room/${room.code}\nJoin before the host starts voting.`,
+                      message: roomInviteMessage(room.code),
                     }).catch((e) => setError(e.message));
                   },
                   true,

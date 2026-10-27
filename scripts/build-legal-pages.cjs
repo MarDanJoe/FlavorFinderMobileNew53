@@ -27,3 +27,5 @@ fs.writeFileSync(
 console.log(
   "Generated privacy, terms and support pages in public/legal and docs. Publish docs updates to refresh GitHub Pages.",
 );
+
+require("./build-invite-page.cjs");

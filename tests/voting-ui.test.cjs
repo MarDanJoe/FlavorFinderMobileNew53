@@ -116,6 +116,7 @@ function harness(file, seeded = []) {
     "../services/supabase": { supabase: null },
     "../config/demo": { DEMO_MODE: false },
     "../services/api": {},
+    "../services/invites": { roomInviteMessage: (code) => `Room ${code}` },
     "../services/rooms": {
       roomAction: async (...args) => {
         actions.push(args);

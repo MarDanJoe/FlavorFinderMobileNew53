@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Eat together · Flavor Finder</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f8f6f0;
+        color: #233329;
+        font:
+          17px/1.6 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 620px;
+        margin: auto;
+        padding: 40px 24px;
+      }
+      h1 {
+        font-size: clamp(30px, 7vw, 46px);
+        line-height: 1.15;
+      }
+      .brand {
+        font-weight: 800;
+        font-size: 23px;
+      }
+      .brand span {
+        color: #b95737;
+      }
+      .panel {
+        background: #fff;
+        padding: 24px;
+        border: 1px solid #d7ded6;
+        border-radius: 24px;
+        margin: 24px 0;
+      }
+      .code {
+        font-size: clamp(24px, 7vw, 38px);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        overflow-wrap: anywhere;
+      }
+      a {
+        color: #315e48;
+      }
+      a.button,
+      button {
+        display: block;
+        width: 100%;
+        background: #b95737;
+        color: #fff;
+        border: 0;
+        border-radius: 16px;
+        padding: 15px 18px;
+        text-align: center;
+        text-decoration: none;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        margin: 12px 0;
+      }
+      .secondary {
+        background: #315e48;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .muted {
+        color: #59665d;
+        font-size: 15px;
+      }
+      :focus-visible {
+        outline: 3px solid #315e48;
+        outline-offset: 4px;
+      }
+      footer {
+        margin-top: 32px;
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="brand">flavorfinder<span>.</span></p>
+      <h1>Your friends are picking dinner.</h1>
+      <p>
+        Swipe the same restaurants, vote privately, and find your group’s next
+        meal.
+      </p>
+      <section class="panel" aria-labelledby="room-heading">
+        <h2 id="room-heading">Your voting room</h2>
+        <p class="code" id="code">Open your friend’s invite link</p>
+        <button id="copy" type="button" disabled>Copy room code</button>
+        <a id="open" class="button secondary" hidden>Open Flavor Finder</a>
+        <p id="status" class="muted" role="status" aria-live="polite">
+          Ask your host for a room link or code.
+        </p>
+      </section>
+      <section aria-labelledby="download-heading">
+        <h2 id="download-heading">Need the app?</h2>
+        <a
+          id="download"
+          class="button"
+          href="__DOWNLOAD_URL__"
+          __DOWNLOAD_HIDDEN__
+          >__DOWNLOAD_LABEL__</a
+        >
+        <p id="beta-note">__DOWNLOAD_NOTE__</p>
+        <p>
+          After installing, return to this page and tap
+          <strong>Open Flavor Finder</strong>, or open
+          <strong>Eat Together</strong> in the app and enter the room code. Join
+          before the host starts voting. Rooms expire after 24 hours.
+        </p>
+        <p class="muted">
+          The room code will stay here while you install. It is not
+          automatically transferred through installation. Send this link only to
+          people you want in your room.
+        </p>
+      </section>
+      <noscript
+        ><p>
+          Ask your host for the room code, then enter it in Eat Together after
+          installing Flavor Finder.
+        </p></noscript
+      >
+      <footer>
+        <a href="privacy.html">Privacy</a><a href="support.html">Support</a>
+      </footer>
+    </main>
+    <script>
+      "use strict";
+      function updateRoom() {
+        const code =
+          new URLSearchParams(location.hash.slice(1))
+            .get("room")
+            ?.trim()
+            .toUpperCase() || "";
+        const valid = /^(?:[0-9]{6}|[A-F0-9]{12})$/.test(code);
+        document.getElementById("code").textContent = valid
+          ? code
+          : "Open your friend’s invite link";
+        const open = document.getElementById("open");
+        open.hidden = !valid;
+        if (valid) open.href = "flavorfinder://room/" + code;
+        else open.removeAttribute("href");
+        const copy = document.getElementById("copy");
+        copy.disabled = !valid;
+        document.getElementById("status").textContent = valid
+          ? "Already installed? Open the app to join. If it doesn’t open, enter this code in Eat Together."
+          : "Ask your host for a valid room link or code.";
+        copy.onclick = async function () {
+          try {
+            await navigator.clipboard.writeText(code);
+            document.getElementById("status").textContent = "Room code copied.";
+          } catch {
+            document.getElementById("status").textContent =
+              "Select and copy the room code above, or enter it directly in the app.";
+          }
+        };
+      }
+      updateRoom();
+      addEventListener("hashchange", updateRoom);
+    </script>
+  </body>
+</html>
