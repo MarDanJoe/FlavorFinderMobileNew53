@@ -1,6 +1,6 @@
 # Download-aware room invites — October 27, 2026
 
-Prepared on the review branch, not published or in TestFlight yet.
+The owner approved deployment on October 27. The invite page is published on GitHub Pages; app invite sharing awaits the next TestFlight binary.
 
 Waiting-room Invite Friends now opens the system share sheet with a web link to `https://mardanjoe.github.io/FlavorFinderMobileNew53/join.html#room=CODE`, plus the code and a reminder to join before voting starts. Users can select Messages or another installed sharing app. No messages are sent automatically.
 
@@ -12,8 +12,8 @@ The owner supplied `https://testflight.apple.com/join/NsKqNMrH`. It is configure
 
 1. The public link is supplied and configured. Verify an eligible externally approved build is attached to Friends Beta, and keep beta capacity appropriate for the shared 300-request/day backend cap.
 2. The invite page has been regenerated with the supplied link. Tests validate official URL destinations and TestFlight button generation.
-3. Publish the reviewed docs/join.html to the existing GitHub Pages main/docs site without unintentionally merging unrelated application/backend changes. Verify the deployed page, code copying, app opening and actual TestFlight installation on a phone that does not have Flavor Finder.
-4. Deploy the separately prepared room migration before distributing six-digit room creation. Include invite-message changes in the next TestFlight build only after the website is published.
+3. Published only docs/join.html to main/docs in commit d494ebd20664f72359fcfda7f63962e8db204d9f; GitHub Pages reports built and the fetched live file is byte-identical to the reviewed page. App code and backend source were not merged into main. Phone checks for code copying, app opening and installation remain pending.
+4. The room migration is deployed and verified. Include invite-message changes in the next TestFlight build; the website is already published.
 5. After public App Store release, set appStoreUrl to the real public listing, regenerate/publish the page, and update the beta wording in invite messages. This keeps previously shared web links useful without rebuilding merely to change the download destination.
 
-Validation: the full 90-test suite passed before two additional generator tests were added; all five invite tests pass. TypeScript, formatting and diff checks passed. No hosted configuration, tester enrollment, website deployment or new binary was performed in this change.
+Validation: all 92 tests passed. TypeScript, formatting, release configuration and diff checks passed. No tester enrollment or public App Store release was performed. Build and Apple processing status must be verified separately.
