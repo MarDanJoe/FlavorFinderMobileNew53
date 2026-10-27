@@ -1,6 +1,6 @@
 # Discover layout, room codes, stable cards, and tie runoffs — October 27, 2026
 
-Prepared on `codex/architecture-review`. The owner approved deployment on October 27. The targeted room migration is now live and verified; it is not included in already-distributed TestFlight build 14. A new binary is being prepared.
+Prepared on `codex/architecture-review`. The owner approved deployment on October 27. The targeted room migration is now live and verified; it is not included in already-distributed TestFlight build 14. EAS build 15 has completed successfully; its automatic Apple submission is queued. Apple processing and tester availability remain unverified.
 
 ## Behavior
 

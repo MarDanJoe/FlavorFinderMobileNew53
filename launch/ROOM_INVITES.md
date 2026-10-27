@@ -1,6 +1,6 @@
 # Download-aware room invites — October 27, 2026
 
-The owner approved deployment on October 27. The invite page is published on GitHub Pages; app invite sharing awaits the next TestFlight binary.
+The owner approved deployment on October 27. The invite page is published on GitHub Pages; app invite sharing is included in completed EAS build 15, whose automatic Apple submission is queued. Apple processing and tester availability remain unverified.
 
 Waiting-room Invite Friends now opens the system share sheet with a web link to `https://mardanjoe.github.io/FlavorFinderMobileNew53/join.html#room=CODE`, plus the code and a reminder to join before voting starts. Users can select Messages or another installed sharing app. No messages are sent automatically.
 
