@@ -360,5 +360,87 @@ test("host can cancel before creating a room or return to change the search", ()
   assert.deepEqual(h.navigationCalls, [["back"]]);
   assert.deepEqual(h.actions, []);
   h.button("Change area or filters").props.onPress();
-  assert.deepEqual(h.navigationCalls[1], ["replace", "RoomSetup"]);
+  assert.deepEqual(h.navigationCalls[1], [
+    "replace",
+    "RoomSetup",
+    { nickname: "" },
+  ]);
+});
+
+test("host name survives setup and is not requested again after deck confirmation", () => {
+  const first = harness("src/screens/RoomsScreen.tsx", [null, "Danny"]);
+  first.render();
+  first.button("Choose restaurants & create a room").props.onPress();
+  assert.deepEqual(first.navigationCalls[0], [
+    "navigate",
+    "RoomSetup",
+    { nickname: "Danny" },
+  ]);
+  const setup = harness("src/screens/RoomSetupScreen.tsx");
+  setup.renderPreview({
+    nickname: "Danny",
+    search: { preferences: { radius: 8047, price: [] }, area: null },
+  });
+  setup.button("Use this deck & continue").props.onPress();
+  const params = setup.navigationCalls[0][2];
+  assert.equal(params.nickname, "Danny");
+  const confirm = harness("src/screens/RoomsScreen.tsx");
+  confirm.render({ route: { params } });
+  assert.equal(
+    confirm
+      .nodes()
+      .some((n) => n.props.accessibilityLabel === "Your name in the room"),
+    false,
+  );
+  assert.equal(confirm.button("Create room").props.disabled, false);
+});
+
+test("room card reserves identical height during loading, errors and restaurant changes", () => {
+  const room = {
+    code: "ABC",
+    status: "voting",
+    deck: ["a"],
+    myVotes: {},
+    members: [],
+  };
+  const h = harness("src/screens/RoomsScreen.tsx", [room]);
+  for (const card of [
+    null,
+    {
+      id: "a",
+      name: "A very long restaurant title",
+      rating: 4,
+      location: { address1: "Main Street" },
+    },
+    null,
+  ]) {
+    h.slots[7] = { value: card };
+    h.render();
+    assert.equal(
+      h.nodes().filter((n) => n.props.style?.height === 500).length,
+      1,
+    );
+  }
+});
+
+test("only host sees runoff control and submits the finished round number", async () => {
+  const room = {
+    code: "ABC",
+    round: 1,
+    status: "finished",
+    deck: ["a", "b"],
+    myVotes: {},
+    members: [],
+    tied: true,
+    winner: null,
+    isHost: true,
+  };
+  const h = harness("src/screens/RoomsScreen.tsx", [room]);
+  h.render();
+  h.button("Vote again on tied restaurants").props.onPress();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(h.actions, [["runoff", "ABC", { expected_round: 1 }]]);
+  h.slots[0].value = { ...room, isHost: false };
+  h.render();
+  assert.equal(h.button("Vote again on tied restaurants"), undefined);
 });

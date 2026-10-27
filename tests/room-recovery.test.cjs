@@ -64,7 +64,8 @@ function harness() {
     const exports = {};
     new Function("exports", "require", source)(exports, (name) => {
       if (name === "@react-native-async-storage/async-storage") return storage;
-      if (name === "expo-crypto") return { randomUUID: () => "unused" };
+      if (name === "expo-crypto")
+        return { randomUUID: () => "00000000-0001-4000-8000-000000000000" };
       if (name === "./supabase")
         return { supabase: client, restaurantSession: async () => identity };
       throw new Error(`Unexpected module ${name}`);
@@ -141,4 +142,42 @@ test("restoring a room keeps its storage owner token across a delayed local read
   await app.load().restorePreviousRoom();
   assert.equal(app.calls[0].executedAs, "alice");
   assert.equal(app.stored.get("flavorfinder_room_bob"), "OTHER");
+});
+
+test("new room codes contain six digits and preserve leading zeroes", () => {
+  assert.equal(harness().load().newRoomCode(), "000001");
+});
+
+test("a short-code collision retries creation with the same captured identity", async () => {
+  const app = harness();
+  let attempts = 0;
+  app.setResponse(() =>
+    ++attempts < 2
+      ? { data: null, error: { code: "23505", message: "duplicate key" } }
+      : { data: { code: "000001" }, error: null },
+  );
+  assert.equal(
+    (
+      await app
+        .load()
+        .roomAction("create", "123456", { nickname: "Host", ids: ["a", "b"] })
+    ).code,
+    "000001",
+  );
+  assert.equal(app.calls.length, 2);
+  assert.equal(app.calls[1].args.room_code, "000001");
+  assert.ok(app.calls.every((call) => call.executedAs === "alice"));
+});
+
+test("collision retries stop rather than loop indefinitely", async () => {
+  const app = harness();
+  app.setResponse({
+    data: null,
+    error: { code: "23505", message: "duplicate key" },
+  });
+  await assert.rejects(
+    app.load().roomAction("create", "123456"),
+    /duplicate key/,
+  );
+  assert.equal(app.calls.length, 4);
 });

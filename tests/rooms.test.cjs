@@ -87,6 +87,16 @@ test("room RPC enforces private membership, frozen decks, idempotent votes and o
     assert.ok(["a", "b"].includes(r.winner));
     assert.deepEqual(r.scores, { a: 1, b: 1 });
     const winner = r.winner;
+    // Upgrade existing room data and preserve six-argument callers.
+    await db.exec("reset role");
+    await db.exec(
+      fs.readFileSync(
+        "supabase/migrations/202610270001_room_runoffs.sql",
+        "utf8",
+      ),
+    );
+    await as(friend);
+    assert.equal((await call("get")).round, 1);
     await call("leave");
     r = await call("get");
     assert.equal(r.winner, winner);

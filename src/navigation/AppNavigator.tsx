@@ -22,9 +22,10 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 // Define the types for our navigation
 export type RootStackParamList = {
   Legal: { document: "privacy" | "terms" | "support" };
-  RoomSetup: undefined;
+  RoomSetup: { nickname?: string } | undefined;
   Room:
     | {
+        nickname?: string;
         searchSummary?: string;
         code?: string;
         deck?: string[];

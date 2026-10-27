@@ -39,6 +39,7 @@ export default function RoomsScreen({
   navigation: NativeStackNavigationProp<RootStackParamList>;
   route?: {
     params?: {
+      nickname?: string;
       code?: string;
       deck?: string[];
       cards?: Restaurant[];
@@ -48,7 +49,7 @@ export default function RoomsScreen({
 }) {
   const focused = useIsFocused();
   const [room, setRoom] = useState<VotingRoom | null>(null);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(route?.params?.nickname ?? "");
   const [code, setCode] = useState(route?.params?.code ?? "");
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -161,13 +162,7 @@ export default function RoomsScreen({
     };
   }, [nextId, retry, position]);
   useEffect(() => {
-    if (
-      !room ||
-      !focused ||
-      room.status === "finished" ||
-      room.status === "cancelled"
-    )
-      return;
+    if (!room || !focused || room.status === "cancelled") return;
     let active = true,
       fetching = false;
     const poll = async () => {
@@ -222,7 +217,12 @@ export default function RoomsScreen({
         const fresh = await roomAction(
           action,
           target ?? roomRef.current!.code,
-          extra,
+          {
+            ...extra,
+            ...(roomRef.current?.round
+              ? { expected_round: roomRef.current.round }
+              : {}),
+          },
         );
         if (!mounted.current || actionRevision !== revision.current) return;
         if (action === "leave") {
@@ -256,12 +256,14 @@ export default function RoomsScreen({
       room.status !== "voting" ||
       !nextId ||
       !card ||
+      card.id !== nextId ||
       requestBusy.current
     )
       return;
     void perform("vote", { place: nextId, liked });
   };
-  canSwipe.current = room?.status === "voting" && !!nextId && !!card && !busy;
+  canSwipe.current =
+    room?.status === "voting" && !!nextId && card?.id === nextId && !busy;
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
@@ -355,22 +357,29 @@ export default function RoomsScreen({
             : "Less debating.\nMore eating."}
         </Text>
         <Text style={[layout.subtitle, { marginTop: 10, marginBottom: 20 }]}>
-          Same restaurants. Private swipes. One group pick.
+          Same restaurants. Private swipes. One group pick. The host can also
+          start a runoff between tied restaurants.
         </Text>
         {!room ? (
           <>
-            <Text accessibilityRole="header" style={styles.heading}>
-              What should your friends call you?
-            </Text>
-            <TextInput
-              style={layout.input}
-              accessibilityLabel="Your name in the room"
-              placeholder="Your first name or nickname"
-              value={name}
-              maxLength={24}
-              onChangeText={setName}
-              editable={!busy}
-            />
+            {route?.params?.deck && route.params.nickname ? (
+              <Text style={styles.heading}>Hosting as {name}</Text>
+            ) : (
+              <>
+                <Text accessibilityRole="header" style={styles.heading}>
+                  What should your friends call you?
+                </Text>
+                <TextInput
+                  style={layout.input}
+                  accessibilityLabel="Your name in the room"
+                  placeholder="Your first name or nickname"
+                  value={name}
+                  maxLength={24}
+                  onChangeText={setName}
+                  editable={!busy}
+                />
+              </>
+            )}
             {route?.params?.deck ? (
               <>
                 <Text style={layout.subtitle}>
@@ -384,7 +393,8 @@ export default function RoomsScreen({
                 )}
                 {button(
                   "Change area or filters",
-                  () => navigation.replace("RoomSetup"),
+                  () =>
+                    navigation.replace("RoomSetup", { nickname: name.trim() }),
                   true,
                 )}
                 {button(
@@ -403,7 +413,8 @@ export default function RoomsScreen({
               <>
                 {button(
                   "Choose restaurants & create a room",
-                  () => navigation.navigate("RoomSetup"),
+                  () =>
+                    navigation.navigate("RoomSetup", { nickname: name.trim() }),
                   false,
                   DEMO_MODE,
                 )}
@@ -412,8 +423,8 @@ export default function RoomsScreen({
                 </Text>
                 <TextInput
                   style={layout.input}
-                  accessibilityLabel="12-character room code"
-                  placeholder="Room code"
+                  accessibilityLabel="6-digit room code or existing invite code"
+                  placeholder="6-digit room code"
                   value={code}
                   maxLength={12}
                   onChangeText={(v) =>
@@ -427,7 +438,9 @@ export default function RoomsScreen({
                   "Join room",
                   () => void perform("join", { nickname: name.trim() }, code),
                   false,
-                  !name.trim() || code.length !== 12 || DEMO_MODE,
+                  !name.trim() ||
+                    !/^(?:[0-9]{6}|[A-F0-9]{12})$/.test(code) ||
+                    DEMO_MODE,
                 )}
               </>
             )}
@@ -498,7 +511,7 @@ export default function RoomsScreen({
                     ? room.winner
                       ? "Your group’s pick"
                       : "No restaurant got a like"
-                    : `Your votes · ${Object.keys(room.myVotes).length}/${room.deck.length}`}
+                    : `${(room.round ?? 1) > 1 ? `Runoff ${room.round! - 1} · ` : ""}Your votes · ${Object.keys(room.myVotes).length}/${room.deck.length}`}
                 </Text>
                 {room.status === "finished" && (
                   <Text style={layout.subtitle}>
@@ -509,78 +522,88 @@ export default function RoomsScreen({
                       : "Try a different cuisine or wider search, then create a fresh room."}
                   </Text>
                 )}
-                {nextId &&
-                  (card ? (
-                    <Animated.View
-                      key={nextId}
-                      {...(room.status === "voting" ? pan.panHandlers : {})}
-                      style={[
-                        styles.card,
-                        { transform: [{ translateX: position }] },
-                      ]}
-                    >
-                      <RestaurantImage
-                        uri={card.image_url}
-                        style={{ height: 190 }}
-                      />
-                      <View style={{ padding: 18 }}>
-                        <Text style={styles.heading}>{card.name}</Text>
-                        <Text style={layout.subtitle}>
-                          ★ {card.rating.toFixed(1)}{" "}
-                          {card.price ? ` · ${card.price}` : ""}
-                        </Text>
-                        <Text style={[layout.subtitle, { marginTop: 8 }]}>
-                          {card.location.address1}
-                        </Text>
-                        {room.status === "finished" && (
-                          <Text style={styles.notice}>
-                            {room.scores?.[card.id] ?? 0} likes
-                          </Text>
-                        )}
-                        {button(
-                          "Restaurant details & directions",
-                          () =>
-                            navigation.navigate("RestaurantDetail", {
-                              id: card.id,
-                            }),
-                          true,
-                        )}
-                      </View>
-                      <View
-                        style={{ paddingHorizontal: 18, paddingBottom: 12 }}
+                {nextId && (
+                  <View style={styles.cardFrame}>
+                    {card?.id === nextId ? (
+                      <Animated.View
+                        key={nextId}
+                        {...(room.status === "voting" ? pan.panHandlers : {})}
+                        style={[
+                          styles.card,
+                          { transform: [{ translateX: position }] },
+                        ]}
                       >
-                        <GoogleAttribution
-                          authors={card.photo_attributions}
-                          providers={card.provider_attributions}
-                          photoSource={card.photo_source_uri}
+                        <RestaurantImage
+                          uri={card.image_url}
+                          style={{ height: 190 }}
                         />
-                      </View>
-                    </Animated.View>
-                  ) : (
-                    <View style={styles.panel}>
-                      {cardError ? (
-                        <>
-                          <Text style={layout.subtitle}>{cardError}</Text>
+                        <ScrollView
+                          style={{ flex: 1 }}
+                          contentContainerStyle={{ padding: 18 }}
+                          nestedScrollEnabled
+                          scrollEnabled={!dragging}
+                        >
+                          <Text style={styles.heading}>{card.name}</Text>
+                          <Text style={layout.subtitle}>
+                            ★ {card.rating.toFixed(1)}{" "}
+                            {card.price ? ` · ${card.price}` : ""}
+                          </Text>
+                          <Text style={[layout.subtitle, { marginTop: 8 }]}>
+                            {card.location.address1}
+                          </Text>
+                          {room.status === "finished" && (
+                            <Text style={styles.notice}>
+                              {room.scores?.[card.id] ?? 0} likes
+                            </Text>
+                          )}
                           {button(
-                            "Retry restaurant",
-                            () => setRetry((v) => v + 1),
+                            "Restaurant details & directions",
+                            () =>
+                              navigation.navigate("RestaurantDetail", {
+                                id: card.id,
+                              }),
                             true,
                           )}
-                        </>
-                      ) : (
-                        <>
-                          <ActivityIndicator color={colors.accent} />
-                          <Text style={styles.notice}>Loading restaurant…</Text>
-                        </>
-                      )}
-                    </View>
-                  ))}
+                        </ScrollView>
+                        <View
+                          style={{ paddingHorizontal: 18, paddingBottom: 12 }}
+                        >
+                          <GoogleAttribution
+                            authors={card.photo_attributions}
+                            providers={card.provider_attributions}
+                            photoSource={card.photo_source_uri}
+                          />
+                        </View>
+                      </Animated.View>
+                    ) : (
+                      <View style={[styles.card, styles.cardPlaceholder]}>
+                        {cardError ? (
+                          <>
+                            <Text style={layout.subtitle}>{cardError}</Text>
+                            {button(
+                              "Retry restaurant",
+                              () => setRetry((v) => v + 1),
+                              true,
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <ActivityIndicator color={colors.accent} />
+                            <Text style={styles.notice}>
+                              Loading restaurant…
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
                 {room.status === "voting" && nextId && (
                   <View style={[layout.row, { gap: 12, marginTop: 16 }]}>
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel="Pass on this restaurant"
-                      disabled={busy || !card}
+                      disabled={busy || !card || card.id !== nextId}
                       onPress={() => voteRef.current(false)}
                       style={[styles.vote, { backgroundColor: colors.paper }]}
                     >
@@ -589,7 +612,7 @@ export default function RoomsScreen({
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel="Like this restaurant"
-                      disabled={busy || !card}
+                      disabled={busy || !card || card.id !== nextId}
                       onPress={() => voteRef.current(true)}
                       style={[styles.vote, { backgroundColor: colors.accent }]}
                     >
@@ -617,6 +640,26 @@ export default function RoomsScreen({
                     ))}
                     {room.isHost &&
                       button("Finish early & pick a restaurant", finish, true)}
+                  </>
+                )}
+                {room.status === "finished" && room.tied && !!room.round && (
+                  <>
+                    <Text style={styles.notice}>
+                      Keep the random winner above, or vote again on only the
+                      tied restaurants.
+                    </Text>
+                    {room.isHost ? (
+                      button(
+                        "Vote again on tied restaurants",
+                        () => void perform("runoff"),
+                        true,
+                      )
+                    ) : (
+                      <Text style={styles.notice}>
+                        Your host can start a tie-breaking round. Stay here to
+                        join it.
+                      </Text>
+                    )}
                   </>
                 )}
                 {room.status === "finished" &&
@@ -774,13 +817,15 @@ const styles = StyleSheet.create({
   },
   secondaryText: { fontSize: 14, fontWeight: "700", color: colors.ink },
   card: {
-    marginTop: 18,
+    height: "100%",
     borderRadius: 24,
     overflow: "hidden",
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardFrame: { height: 500, marginTop: 18 },
+  cardPlaceholder: { justifyContent: "center", padding: 20 },
   vote: {
     flex: 1,
     alignItems: "center",

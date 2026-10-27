@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Modal,
   Animated,
   PanResponder,
   useWindowDimensions,
@@ -60,6 +61,8 @@ export function HomeScreen({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [swiping, setSwiping] = useState(false);
+  const [showLocation, setShowLocation] = useState(false);
+  const [cardHeight, setCardHeight] = useState(Math.max(180, height - 370));
   const [lastAction, setLastAction] = useState<"save" | "skip" | null>(null);
   // Each discovery owns its native transform; an outgoing card cannot leave
   // the following card translated off screen during a native animation reset.
@@ -162,18 +165,13 @@ export function HomeScreen({
     "All flavors";
   return (
     <SafeAreaView style={layout.screen} edges={["top", "left", "right"]}>
-      <ScrollView
-        scrollEnabled={!swiping && !busy}
-        directionalLockEnabled
-        contentContainerStyle={{ paddingBottom: 16 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={{ flex: 1 }}>
         <View style={[layout.content, styles.brandRow]}>
           <View style={layout.row}>
             <View style={styles.mark}>
               <Ionicons name="restaurant" size={19} color="#fff" />
             </View>
-            <Text style={styles.brand}>
+            <Text accessibilityRole="header" style={styles.brand}>
               flavorfinder<Text style={{ color: colors.accent }}>.</Text>
             </Text>
           </View>
@@ -187,50 +185,29 @@ export function HomeScreen({
           </TouchableOpacity>
         </View>
         <View style={layout.content}>
-          <View style={[layout.row, { gap: 5, marginBottom: 10 }]}>
-            <Ionicons name="location-outline" size={13} color={colors.green} />
-            <Text style={styles.eyebrow}>
-              {DEMO_MODE ? "DEMO NEIGHBORHOOD" : "AROUND YOU"} ·{" "}
-              {Math.round(library.preferences.radius / 1609.34)} MI
-            </Text>
-          </View>
-          {!DEMO_MODE && (
-            <LocationPicker
-              label={searchLocation?.label ?? "Near you"}
-              onSelect={(value) => {
-                setSearchLocation(value);
-                if (!value) discovery.useDeviceLocation();
-              }}
-            />
-          )}
-          <Text accessibilityRole="header" style={layout.title}>
-            Good food.{"\n"}Great discoveries.
-          </Text>
-          <Text style={[layout.subtitle, { marginTop: 9, marginBottom: 18 }]}>
-            Discover your next favorite. Let your friends help choose.
-          </Text>
-        </View>
-        <View style={[layout.content, { marginBottom: 18 }]}>
           <TouchableOpacity
             accessibilityRole="button"
-            style={layout.primary}
-            onPress={() => navigation.navigate("RoomSetup")}
+            accessibilityLabel="Change discovery location"
+            onPress={() => setShowLocation(true)}
+            disabled={DEMO_MODE}
+            style={{ minHeight: 44, justifyContent: "center" }}
           >
-            <Text style={layout.primaryText}>
-              Eat together · Create a voting room
+            <Text style={styles.eyebrow} numberOfLines={1}>
+              {DEMO_MODE
+                ? "DEMO NEIGHBORHOOD"
+                : (searchLocation?.label ?? "NEAR YOU")}{" "}
+              · {Math.round(library.preferences.radius / 1609.34)} MI · Change
             </Text>
           </TouchableOpacity>
-          <Text style={[layout.subtitle, { fontSize: 12, marginTop: 8 }]}>
-            Choose the group’s area and filters, then invite your friends.
-          </Text>
         </View>
         <ScrollView
           horizontal
+          style={{ flexGrow: 0, flexShrink: 0 }}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: Math.max(24, (width - 472) / 2),
             gap: 9,
-            paddingBottom: 18,
+            paddingBottom: 10,
           }}
         >
           {cuisines.map((c) => (
@@ -274,7 +251,7 @@ export function HomeScreen({
           style={[
             layout.content,
             layout.row,
-            { justifyContent: "space-between", marginBottom: 12 },
+            { justifyContent: "space-between", marginBottom: 8 },
           ]}
         >
           <Text style={styles.sectionTitle}>
@@ -286,17 +263,32 @@ export function HomeScreen({
             {restaurant ? `${currentIndex + 1} / ${total}` : "Explore"}
           </Text>
         </View>
-        <View style={{ width: cardWidth, alignSelf: "center", minHeight: 320 }}>
+        <View
+          testID="discovery-card-frame"
+          onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}
+          style={{
+            width: cardWidth,
+            alignSelf: "center",
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
           {loading || !library.searchReady ? (
-            <View style={styles.state}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.state}
+            >
               <ActivityIndicator size="large" color={colors.accent} />
               <Text style={styles.stateTitle}>Finding your flavor…</Text>
               <Text style={layout.subtitle}>
                 A little discovery is on its way.
               </Text>
-            </View>
+            </ScrollView>
           ) : error || !restaurant ? (
-            <View style={styles.state}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.state}
+            >
               <View style={styles.stateIcon}>
                 <Ionicons
                   name="compass-outline"
@@ -327,7 +319,7 @@ export function HomeScreen({
                   Adjust filters
                 </Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           ) : (
             <Animated.View
               key={restaurant.id}
@@ -347,117 +339,127 @@ export function HomeScreen({
                 },
               ]}
             >
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`View ${restaurant.name} details`}
-                activeOpacity={0.95}
-                onPress={() =>
-                  navigation.navigate("RestaurantDetail", { id: restaurant.id })
-                }
+              <ScrollView
+                accessibilityLabel="Restaurant card content"
+                directionalLockEnabled
+                scrollEnabled={!swiping && !busy}
+                showsVerticalScrollIndicator={false}
+                style={{ flex: 1 }}
               >
-                <RestaurantImage
-                  uri={restaurant.image_url}
-                  style={{
-                    height: Math.max(165, Math.min(220, height * 0.23)),
-                  }}
-                />
-                <View style={styles.imageBadge}>
-                  <Ionicons name="star" size={12} color={colors.accent} />
-                  <Text
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`View ${restaurant.name} details`}
+                  activeOpacity={0.95}
+                  onPress={() =>
+                    navigation.navigate("RestaurantDetail", {
+                      id: restaurant.id,
+                    })
+                  }
+                >
+                  <RestaurantImage
+                    uri={restaurant.image_url}
                     style={{
-                      color: colors.ink,
-                      fontWeight: "700",
-                      fontSize: 12,
+                      height: Math.max(80, Math.min(190, cardHeight * 0.38)),
                     }}
-                  >
-                    {restaurant.rating.toFixed(1)}
-                  </Text>
-                </View>
-                {restaurant.is_open_now !== undefined && (
-                  <View style={styles.openBadge}>
-                    <View
-                      style={[
-                        styles.dot,
-                        !restaurant.is_open_now && {
-                          backgroundColor: colors.muted,
-                        },
-                      ]}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: colors.ink,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {restaurant.is_open_now ? "Open now" : "Closed now"}
-                    </Text>
-                  </View>
-                )}
-                <View style={{ padding: 20 }}>
-                  <Text style={styles.restaurantName} numberOfLines={2}>
-                    {restaurant.name}
-                  </Text>
-                  <Text style={[layout.subtitle, { marginTop: 5 }]}>
-                    {restaurant.categories
-                      .filter(
-                        (c) =>
-                          c.alias !== "restaurant" &&
-                          c.alias !== "food" &&
-                          c.alias !== "point_of_interest" &&
-                          c.alias !== "establishment",
-                      )
-                      .slice(0, 2)
-                      .map((c) => c.title)
-                      .join(" · ") || "Something delicious nearby"}
-                    {restaurant.price ? ` · ${restaurant.price}` : ""}
-                  </Text>
-                  <View
-                    style={[
-                      layout.row,
-                      {
-                        marginTop: 15,
-                        paddingTop: 14,
-                        borderTopWidth: 1,
-                        borderColor: colors.border,
-                        gap: 6,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="location-outline"
-                      size={14}
-                      color={colors.muted}
-                    />
-                    <Text
-                      style={{ flex: 1, color: colors.muted, fontSize: 12 }}
-                      numberOfLines={1}
-                    >
-                      {restaurant.location.address1}
-                    </Text>
+                  />
+                  <View style={styles.imageBadge}>
+                    <Ionicons name="star" size={12} color={colors.accent} />
                     <Text
                       style={{
                         color: colors.ink,
-                        fontWeight: "600",
+                        fontWeight: "700",
                         fontSize: 12,
                       }}
                     >
-                      {restaurant.distance < 0.1
-                        ? "Nearby"
-                        : `${restaurant.distance.toFixed(1)} mi`}
+                      {restaurant.rating.toFixed(1)}
                     </Text>
                   </View>
-                </View>
-              </TouchableOpacity>
-              {!DEMO_MODE && (
-                <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
-                  <GoogleAttribution
-                    authors={restaurant.photo_attributions}
-                    providers={restaurant.provider_attributions}
-                    photoSource={restaurant.photo_source_uri}
-                  />
-                </View>
-              )}
+                  {restaurant.is_open_now !== undefined && (
+                    <View style={styles.openBadge}>
+                      <View
+                        style={[
+                          styles.dot,
+                          !restaurant.is_open_now && {
+                            backgroundColor: colors.muted,
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.ink,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {restaurant.is_open_now ? "Open now" : "Closed now"}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ padding: 20 }}>
+                    <Text style={styles.restaurantName} numberOfLines={2}>
+                      {restaurant.name}
+                    </Text>
+                    <Text style={[layout.subtitle, { marginTop: 5 }]}>
+                      {restaurant.categories
+                        .filter(
+                          (c) =>
+                            c.alias !== "restaurant" &&
+                            c.alias !== "food" &&
+                            c.alias !== "point_of_interest" &&
+                            c.alias !== "establishment",
+                        )
+                        .slice(0, 2)
+                        .map((c) => c.title)
+                        .join(" · ") || "Something delicious nearby"}
+                      {restaurant.price ? ` · ${restaurant.price}` : ""}
+                    </Text>
+                    <View
+                      style={[
+                        layout.row,
+                        {
+                          marginTop: 15,
+                          paddingTop: 14,
+                          borderTopWidth: 1,
+                          borderColor: colors.border,
+                          gap: 6,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="location-outline"
+                        size={14}
+                        color={colors.muted}
+                      />
+                      <Text
+                        style={{ flex: 1, color: colors.muted, fontSize: 12 }}
+                        numberOfLines={1}
+                      >
+                        {restaurant.location.address1}
+                      </Text>
+                      <Text
+                        style={{
+                          color: colors.ink,
+                          fontWeight: "600",
+                          fontSize: 12,
+                        }}
+                      >
+                        {restaurant.distance < 0.1
+                          ? "Nearby"
+                          : `${restaurant.distance.toFixed(1)} mi`}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                {!DEMO_MODE && (
+                  <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
+                    <GoogleAttribution
+                      authors={restaurant.photo_attributions}
+                      providers={restaurant.provider_attributions}
+                      photoSource={restaurant.photo_source_uri}
+                    />
+                  </View>
+                )}
+              </ScrollView>
             </Animated.View>
           )}
         </View>
@@ -509,7 +511,11 @@ export function HomeScreen({
             <Ionicons name="information-outline" size={22} color={colors.ink} />
           </TouchableOpacity>
         </View>
-        <Text accessibilityLiveRegion="polite" style={styles.hint}>
+        <Text
+          numberOfLines={2}
+          accessibilityLiveRegion="polite"
+          style={styles.hint}
+        >
           {message ||
             library.error ||
             "Pass on the left. Fall in love on the right."}
@@ -517,7 +523,38 @@ export function HomeScreen({
         {DEMO_MODE && (
           <Text style={styles.demo}>PREVIEW MODE · SAMPLE RESTAURANTS</Text>
         )}
-      </ScrollView>
+      </View>
+      <Modal
+        visible={showLocation}
+        animationType="slide"
+        onRequestClose={() => setShowLocation(false)}
+      >
+        <SafeAreaView style={layout.screen}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[layout.content, { paddingVertical: 24 }]}
+          >
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => setShowLocation(false)}
+              style={{ minHeight: 48, justifyContent: "center" }}
+            >
+              <Text style={{ color: colors.green }}>Back to Discover</Text>
+            </TouchableOpacity>
+            <Text accessibilityRole="header" style={layout.title}>
+              Where are we eating?
+            </Text>
+            <LocationPicker
+              label={searchLocation?.label ?? "Near you"}
+              onSelect={(value) => {
+                setSearchLocation(value);
+                if (!value) discovery.useDeviceLocation();
+                setShowLocation(false);
+              }}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
       <FilterSheet
         visible={showFilters}
         value={library.preferences}
@@ -541,8 +578,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 18,
-    paddingBottom: 18,
+    paddingTop: 6,
+    paddingBottom: 2,
   },
   mark: {
     width: 32,
@@ -587,6 +624,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, color: colors.ink, fontWeight: "700" },
   counter: { fontSize: 11, color: colors.muted },
   card: {
+    height: "100%",
     borderRadius: 24,
     backgroundColor: colors.paper,
     overflow: "hidden",
@@ -627,7 +665,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
-  actions: { justifyContent: "center", gap: 18, paddingTop: 20 },
+  actions: { justifyContent: "center", gap: 18, paddingTop: 10 },
   undo: {
     width: 48,
     height: 48,
@@ -661,7 +699,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: "center",
     paddingHorizontal: 24,
-    paddingTop: 13,
+    paddingTop: 6,
+    paddingBottom: 6,
+    minHeight: 42,
     lineHeight: 18,
   },
   demo: {
@@ -672,7 +712,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   state: {
-    minHeight: 330,
+    flexGrow: 1,
     padding: 24,
     alignItems: "center",
     justifyContent: "center",

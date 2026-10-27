@@ -61,6 +61,7 @@ function harness() {
     TouchableOpacity: "Button",
     ScrollView: "Scroll",
     ActivityIndicator: "Spinner",
+    Modal: "Modal",
     useWindowDimensions: () => ({ width: 390, height: 844 }),
     StyleSheet: { create: (x) => x },
     PanResponder: { create: (x) => ({ panHandlers: x }) },
@@ -203,7 +204,7 @@ test("full horizontal swipe keeps card ownership and advances after its animatio
   assert.deepEqual(app.saved, []);
 });
 
-test("card drag locks page scrolling until release and exit animation complete", async () => {
+test("card drag locks its content scrolling until release and exit animation complete", async () => {
   const app = harness();
   let tree = app.render();
   const card = app.find(tree, (n) => n.type === "AnimatedCard");
@@ -217,4 +218,53 @@ test("card drag locks page scrolling until release and exit animation complete",
   assert.equal(page(app.render()).props.scrollEnabled, false);
   app.animations.at(-1).callback({ finished: true });
   assert.equal(page(app.render()).props.scrollEnabled, true);
+});
+
+test("Discover keeps branding and controls outside scrolling card content without a duplicate room shortcut", () => {
+  const app = harness();
+  const tree = app.render();
+  const page = tree.children[0];
+  assert.equal(page.type, "View");
+  assert.equal(page.props.style.flex, 1);
+  assert.ok(
+    app.find(
+      page,
+      (n) => n.type === "Text" && n.children[0] === "flavorfinder",
+    ),
+  );
+  assert.equal(
+    app.find(
+      tree,
+      (n) =>
+        n.type === "Text" &&
+        n.children[0] === "Eat together · Create a voting room",
+    ),
+    undefined,
+  );
+  const frame = app.find(
+    tree,
+    (n) => n.props.testID === "discovery-card-frame",
+  );
+  assert.equal(frame.props.style.flex, 1);
+  frame.props.onLayout({ nativeEvent: { layout: { height: 280 } } });
+  const updated = app.render();
+  const image = app.find(updated, (n) => n.type === "RestaurantImage");
+  assert.equal(image.props.style.height, 106.4);
+  assert.ok(
+    app.find(updated, (n) => n.props.accessibilityLabel === "Save restaurant"),
+  );
+});
+
+test("location editing opens above the fixed Discover layout", () => {
+  const app = harness();
+  let tree = app.render();
+  assert.equal(app.find(tree, (n) => n.type === "Modal").props.visible, false);
+  app
+    .find(
+      tree,
+      (n) => n.props.accessibilityLabel === "Change discovery location",
+    )
+    .props.onPress();
+  tree = app.render();
+  assert.equal(app.find(tree, (n) => n.type === "Modal").props.visible, true);
 });

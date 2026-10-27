@@ -27,8 +27,10 @@ export function roomSearchSummary({ preferences: p, area }: Search) {
 }
 export default function RoomSetupScreen({
   navigation,
+  route,
 }: {
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  route?: { params?: { nickname?: string } };
 }) {
   // A group search is independent from the host's personal Discover preferences.
   const [preferences, setPreferences] = useState<Preferences>({
@@ -92,6 +94,7 @@ export default function RoomSetupScreen({
           <RoomDeckPreview
             key={JSON.stringify(search)}
             search={search}
+            nickname={route?.params?.nickname}
             navigation={navigation}
           />
         )}
@@ -110,9 +113,11 @@ export default function RoomSetupScreen({
   );
 }
 export function RoomDeckPreview({
+  nickname,
   search,
   navigation,
 }: {
+  nickname?: string;
   search: Search;
   navigation: NativeStackNavigationProp<RootStackParamList>;
 }) {
@@ -170,6 +175,7 @@ export function RoomDeckPreview({
             style={[layout.primary, cards.length < 2 && { opacity: 0.5 }]}
             onPress={() =>
               navigation.replace("Room", {
+                nickname,
                 deck: cards.map((card) => card.id),
                 cards,
                 searchSummary: roomSearchSummary(search),

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { randomUUID } from "expo-crypto";
 import { restaurantSession, supabase } from "./supabase";
 export interface VotingRoom {
+  round?: number;
   code: string;
   deck: string[];
   status: "waiting" | "voting" | "finished" | "cancelled";
@@ -26,6 +27,7 @@ async function executeRoomAction(
   code: string,
   extra: Record<string, unknown>,
   token: string,
+  collisionRetries = 0,
 ): Promise<VotingRoom> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
@@ -43,6 +45,14 @@ async function executeRoomAction(
     clearTimeout(timer);
   }
   const { data, error } = response;
+  if (error?.code === "23505" && action === "create" && collisionRetries < 3)
+    return executeRoomAction(
+      action,
+      newRoomCode(),
+      extra,
+      token,
+      collisionRetries + 1,
+    );
   if (error)
     throw new Error(
       error.code === "PGRST202"
@@ -53,7 +63,9 @@ async function executeRoomAction(
   return data as VotingRoom;
 }
 export const newRoomCode = () =>
-  randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+  String(
+    parseInt(randomUUID().replace(/-/g, "").slice(0, 12), 16) % 1000000,
+  ).padStart(6, "0");
 async function roomSession() {
   const token = await restaurantSession();
   const { data, error } = await supabase!.auth.getSession();
