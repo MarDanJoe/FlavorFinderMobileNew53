@@ -26,7 +26,9 @@
       "autoIncrement": true,
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_DEMO_MODE": "false"
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_DIRECT_PHOTOS": "true",
+        "EXPO_PUBLIC_ADS_MODE": "test"
       },
       "ios": {
         "image": "macos-tahoe-26.5-xcode-26.6"
