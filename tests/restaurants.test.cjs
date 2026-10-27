@@ -70,6 +70,17 @@ function harness(search, permission = "granted") {
     require(name) {
       if (name === "../config/demo") return { DEMO_MODE: false };
       if (name === "react") return react;
+      if (name === "../services/library") {
+        const module = {};
+        vm.runInNewContext(
+          ts.transpileModule(
+            fs.readFileSync("src/services/library.ts", "utf8"),
+            { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+          ).outputText,
+          { exports: module },
+        );
+        return module;
+      }
       if (name === "expo-location")
         return {
           requestForegroundPermissionsAsync: async () =>
@@ -311,4 +322,45 @@ test("failed switch from manual city to device location cannot retry the old cit
   result = await app.flush();
   assert.match(result.error, /denied/);
   assert.equal(calls.length, 1);
+});
+
+test("changing sort reorders loaded cards without another provider search", async () => {
+  let requests = 0;
+  const app = harness(async () => {
+    requests++;
+    return { results: [place("low", 3, 1), place("high", 5, 3)] };
+  });
+  assert.equal((await app.flush()).currentRestaurant.id, "low");
+  app.filters({ rating: 0, price: [], sort: "rating" });
+  assert.equal((await app.flush()).currentRestaurant.id, "high");
+  app.filters({ rating: 0, price: [], sort: "price_asc" });
+  assert.equal((await app.flush()).currentRestaurant.id, "low");
+  app.filters({ rating: 0, price: [], sort: "rating" });
+  await app.flush();
+  app.filters({ rating: 0, price: [], sort: "recommended" });
+  assert.equal((await app.flush()).currentRestaurant.id, "low");
+  assert.equal(requests, 1);
+});
+
+test("sorting appended pages never moves already swiped cards back into the deck", async () => {
+  let requests = 0;
+  const app = harness(async ({ pageToken }) => {
+    requests++;
+    return pageToken
+      ? { results: [place("later", 5)] }
+      : {
+          results: [place("first", 3), place("best", 4)],
+          nextPageToken: "next",
+        };
+  });
+  app.filters({ sort: "rating" });
+  let deck = await app.flush();
+  assert.equal(deck.currentRestaurant.id, "best");
+  deck.nextRestaurant();
+  deck = await app.flush();
+  assert.equal(deck.currentRestaurant.id, "first");
+  deck.nextRestaurant();
+  deck = await app.flush();
+  assert.equal(deck.currentRestaurant.id, "later");
+  assert.equal(requests, 2);
 });

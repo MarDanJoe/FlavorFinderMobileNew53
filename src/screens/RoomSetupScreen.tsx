@@ -12,14 +12,18 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import { GoogleAttribution } from "../components/GoogleAttribution";
 import { FilterSheet } from "../components/FilterSheet";
 import { LocationPicker } from "../components/LocationPicker";
-import { Preferences, defaultPreferences } from "../services/library";
+import {
+  Preferences,
+  defaultPreferences,
+  restaurantSortOptions,
+} from "../services/library";
 import { useRestaurants } from "../hooks/useRestaurants";
 import { colors, layout } from "../theme";
 
 type Area = { latitude: number; longitude: number; label: string } | null;
 type Search = { preferences: Preferences; area: Area };
 export function roomSearchSummary({ preferences: p, area }: Search) {
-  return `${area?.label ?? "Current location"} · ${(p.radius / 1609.344).toFixed(0)} miles · ${p.cuisine || "All flavors"} · ${p.rating ? `${p.rating}+ stars` : "Any rating"} · ${p.price.length ? p.price.join(", ") : "Any price"} · ${p.openNow ? "Open now" : "Any hours"}`;
+  return `${area?.label ?? "Current location"} · ${(p.radius / 1609.344).toFixed(0)} miles · ${p.cuisine || "All flavors"} · ${p.rating ? `${p.rating}+ stars` : "Any rating"} · ${p.price.length ? p.price.join(", ") : "Any price"} · ${p.openNow ? "Open now" : "Any hours"} · ${restaurantSortOptions.find((option) => option.value === (p.sort ?? "recommended"))?.label ?? "Recommended"}`;
 }
 export default function RoomSetupScreen({
   navigation,

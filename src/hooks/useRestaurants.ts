@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Location from "expo-location";
 import { searchRestaurants } from "../services/api";
 import { ENV } from "../config/env";
+import { sortRestaurants, type RestaurantSort } from "../services/library";
 
 // Helper function to calculate distance between two points using Haversine formula
 const calculateDistance = (
@@ -62,6 +63,7 @@ export interface Restaurant {
 }
 
 interface UseRestaurantsParams {
+  sort?: RestaurantSort;
   enabled?: boolean;
   searchLocation?: { latitude: number; longitude: number };
   radius?: number;
@@ -92,6 +94,23 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
   const openNow = params?.openNow ?? false;
   const prices = JSON.stringify(params?.price ?? []);
   const enabled = params?.enabled !== false;
+  const sort = params?.sort ?? "recommended";
+  const sourceOrder = useRef(new Map<string, number>());
+  const sortRef = useRef(sort);
+  sortRef.current = sort;
+  useEffect(() => {
+    setRestaurants((items) =>
+      sort === "recommended"
+        ? [...items].sort(
+            (a, b) =>
+              (sourceOrder.current.get(a.id) ?? 0) -
+              (sourceOrder.current.get(b.id) ?? 0),
+          )
+        : sortRestaurants(items, sort),
+    );
+    setCurrentIndex(0);
+    if (restaurants.length) setError(null);
+  }, [sort]);
   // Coordinates belong to a specific selection/retry. Never reuse the previous
   // city's position while a new device-location request is pending or denied.
   const locationKey = JSON.stringify([
@@ -259,8 +278,13 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
               return true;
             });
           if (batch.length) {
+            for (const item of batch)
+              if (!sourceOrder.current.has(item.id))
+                sourceOrder.current.set(item.id, sourceOrder.current.size);
             setRestaurants((previous) =>
-              firstPage ? batch : [...previous, ...batch],
+              firstPage
+                ? sortRestaurants(batch, sortRef.current)
+                : [...previous, ...sortRestaurants(batch, sortRef.current)],
             );
             return;
           }
@@ -288,6 +312,7 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     const requestGeneration = ++generation.current;
     fetching.current = false;
     seen.current.clear();
+    sourceOrder.current.clear();
     nextPageToken.current = undefined;
     setRestaurants([]);
     setCurrentIndex(0);

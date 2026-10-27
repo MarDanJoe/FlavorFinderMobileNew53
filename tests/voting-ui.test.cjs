@@ -77,14 +77,24 @@ function harness(file, seeded = []) {
     replace: (...args) => navigationCalls.push(["replace", ...args]),
     goBack: () => navigationCalls.push(["back"]),
   };
+  const libraryExports = {};
+  new Function(
+    "exports",
+    ts.transpileModule(fs.readFileSync("src/services/library.ts", "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS },
+    }).outputText,
+  )(libraryExports);
   const modules = {
     react,
     "react-native": native,
     "react-native-safe-area-context": { SafeAreaView: "Safe" },
     "@react-navigation/native": { useIsFocused: () => true },
     "../theme": { colors: {}, layout: {} },
-    "../services/library": { defaultPreferences: defaults },
-    "../contexts/LibraryContext": { defaultPreferences: defaults },
+    "../services/library": { ...libraryExports, defaultPreferences: defaults },
+    "../contexts/LibraryContext": {
+      ...libraryExports,
+      defaultPreferences: defaults,
+    },
     "@expo/vector-icons/Ionicons": "Icon",
     "../components/FilterSheet": { FilterSheet: "Filters" },
     "../components/LocationPicker": { LocationPicker: "Location" },
@@ -255,6 +265,7 @@ test("room setup starts independent, waits for explicit search, and confirms its
       radius: 16093,
       rating: 4,
       cuisine: "pizza",
+      sort: "rating",
       price: ["$$"],
       openNow: true,
     });
@@ -272,6 +283,7 @@ test("room setup starts independent, waits for explicit search, and confirms its
     radius: 16093,
     rating: 4,
     cuisine: "pizza",
+    sort: "rating",
     price: ["$$"],
     openNow: true,
     searchLocation: { latitude: 40, longitude: -80, label: "Group town" },
@@ -281,7 +293,7 @@ test("room setup starts independent, waits for explicit search, and confirms its
   assert.deepEqual(h.navigationCalls[0][2].deck, ["a", "b"]);
   assert.match(
     h.navigationCalls[0][2].searchSummary,
-    /Group town.*10 miles.*pizza/,
+    /Group town.*10 miles.*pizza.*Highest rated/,
   );
 });
 

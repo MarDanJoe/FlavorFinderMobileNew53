@@ -17,7 +17,11 @@ import {
   Preferences,
   defaultPreferences,
 } from "../services/library";
-export { Preferences, defaultPreferences } from "../services/library";
+export {
+  Preferences,
+  defaultPreferences,
+  restaurantSortOptions,
+} from "../services/library";
 interface Library {
   favorites: Restaurant[];
   preferences: Preferences;

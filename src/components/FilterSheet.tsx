@@ -10,7 +10,11 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, layout } from "../theme";
-import { Preferences, defaultPreferences } from "../contexts/LibraryContext";
+import {
+  Preferences,
+  defaultPreferences,
+  restaurantSortOptions,
+} from "../contexts/LibraryContext";
 export function FilterSheet({
   visible,
   value,
@@ -92,6 +96,17 @@ export function FilterSheet({
             </TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.label}>SORT RESULTS</Text>
+            {chips(
+              restaurantSortOptions.map((option) => ({
+                label: option.label,
+                selected: (draft.sort ?? "recommended") === option.value,
+                action: () => setDraft({ ...draft, sort: option.value }),
+              })),
+            )}
+            <Text style={[layout.subtitle, { fontSize: 12 }]}>
+              Sorts loaded results. More results are sorted as each page loads.
+            </Text>
             <Text style={styles.label}>CUISINE</Text>
             {chips(
               [

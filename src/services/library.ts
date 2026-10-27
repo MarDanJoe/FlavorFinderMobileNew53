@@ -1,5 +1,34 @@
 import type { Restaurant } from "../hooks/useRestaurants";
+export const restaurantSortOptions = [
+  { value: "recommended", label: "Recommended" },
+  { value: "distance", label: "Nearest first" },
+  { value: "rating", label: "Highest rated" },
+  { value: "price_asc", label: "Price: low to high" },
+  { value: "price_desc", label: "Price: high to low" },
+] as const;
+export type RestaurantSort = (typeof restaurantSortOptions)[number]["value"];
+export function sortRestaurants<
+  T extends { distance: number; rating: number; price?: string },
+>(items: T[], sort: RestaurantSort = "recommended"): T[] {
+  const result = [...items];
+  if (sort === "recommended") return result;
+  return result.sort((a, b) => {
+    if (sort === "distance")
+      return (
+        (Number.isFinite(a.distance) ? a.distance : Infinity) -
+        (Number.isFinite(b.distance) ? b.distance : Infinity)
+      );
+    if (sort === "rating") return b.rating - a.rating;
+    const price = (p?: string) => (p && /^\${1,4}$/.test(p) ? p.length : null);
+    const left = price(a.price),
+      right = price(b.price);
+    if (left === null || right === null)
+      return left === right ? 0 : left === null ? 1 : -1;
+    return sort === "price_desc" ? right - left : left - right;
+  });
+}
 export interface Preferences {
+  sort?: RestaurantSort;
   radius: number;
   rating: number;
   price: string[];
@@ -57,6 +86,9 @@ export function parseLibrary(raw: string | null): LibraryData {
         : [],
       cuisine: typeof p.cuisine === "string" ? p.cuisine.slice(0, 100) : "",
       openNow: p.openNow === true,
+      sort: restaurantSortOptions.some((option) => option.value === p.sort)
+        ? p.sort
+        : "recommended",
     },
   };
 }

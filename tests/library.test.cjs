@@ -93,3 +93,33 @@ test("corrupt storage is not silently overwritten and invalid preferences are no
   assert.equal(data.preferences.price.length, 0);
   assert.equal(data.preferences.openNow, false);
 });
+
+test("sorts preserve ties and put unknown prices last in either direction", () => {
+  const items = [
+    { id: "unknown", rating: 4, distance: 3 },
+    { id: "cheap", rating: 5, distance: 2, price: "$" },
+    { id: "expensive", rating: 5, distance: 1, price: "$$$" },
+  ];
+  const ids = (sort) =>
+    exportsObject
+      .sortRestaurants(items, sort)
+      .map((r) => r.id)
+      .join(",");
+  assert.equal(ids("price_asc"), "cheap,expensive,unknown");
+  assert.equal(ids("price_desc"), "expensive,cheap,unknown");
+  assert.equal(ids("rating"), "cheap,expensive,unknown");
+  assert.equal(ids("distance"), "expensive,cheap,unknown");
+  assert.equal(items[0].id, "unknown");
+  assert.equal(
+    parseLibrary(
+      JSON.stringify({ favorites: [], preferences: { sort: "bad" } }),
+    ).preferences.sort,
+    "recommended",
+  );
+  assert.equal(
+    parseLibrary(
+      JSON.stringify({ favorites: [], preferences: { sort: "rating" } }),
+    ).preferences.sort,
+    "rating",
+  );
+});
