@@ -63,6 +63,11 @@ export default function RoomsScreen({
   const [confirmation, setConfirmation] = useState<"leave" | "finish" | null>(
     null,
   );
+  const [showRoomInfo, setShowRoomInfo] = useState(false);
+  const [cardHeight, setCardHeight] = useState(500);
+  useEffect(() => {
+    if (room?.status !== "voting") setShowRoomInfo(false);
+  }, [room?.status]);
   const requestBusy = useRef(false);
   const revision = useRef(0);
   const roomRef = useRef(room);
@@ -321,452 +326,566 @@ export default function RoomsScreen({
       </Text>
     </TouchableOpacity>
   );
+  const votingLayout = room?.status === "voting";
+  const restaurantCard = room && nextId && (
+    <View
+      testID="room-card-frame"
+      onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}
+      style={votingLayout ? styles.votingCardFrame : styles.cardFrame}
+    >
+      {card?.id === nextId ? (
+        <Animated.View
+          key={nextId}
+          {...(room.status === "voting" ? pan.panHandlers : {})}
+          style={[styles.card, { transform: [{ translateX: position }] }]}
+        >
+          <RestaurantImage
+            uri={card.image_url}
+            style={{
+              height: votingLayout
+                ? Math.max(60, Math.min(190, cardHeight * 0.35))
+                : 190,
+            }}
+          />
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 18 }}
+            nestedScrollEnabled
+            scrollEnabled={!dragging}
+          >
+            <Text style={styles.heading}>{card.name}</Text>
+            <Text style={layout.subtitle}>
+              ★ {card.rating.toFixed(1)} {card.price ? ` · ${card.price}` : ""}
+            </Text>
+            <Text style={[layout.subtitle, { marginTop: 8 }]}>
+              {card.location.address1}
+            </Text>
+            {room.status === "finished" && (
+              <Text style={styles.notice}>
+                {room.scores?.[card.id] ?? 0} likes
+              </Text>
+            )}
+            {button(
+              "Restaurant details & directions",
+              () =>
+                navigation.navigate("RestaurantDetail", {
+                  id: card.id,
+                }),
+              true,
+            )}
+            <View style={{ paddingHorizontal: 18, paddingBottom: 12 }}>
+              <GoogleAttribution
+                authors={card.photo_attributions}
+                providers={card.provider_attributions}
+                photoSource={card.photo_source_uri}
+              />
+            </View>
+          </ScrollView>
+        </Animated.View>
+      ) : (
+        <View style={[styles.card, styles.cardPlaceholder]}>
+          {cardError ? (
+            <>
+              <Text style={layout.subtitle}>{cardError}</Text>
+              {button("Retry restaurant", () => setRetry((v) => v + 1), true)}
+            </>
+          ) : (
+            <>
+              <ActivityIndicator color={colors.accent} />
+              <Text style={styles.notice}>Loading restaurant…</Text>
+            </>
+          )}
+        </View>
+      )}
+    </View>
+  );
+  const returnToRooms = () => {
+    revision.current++;
+    setRoom(null);
+    setShowRoomInfo(false);
+    setConnection("");
+    cache.current.clear();
+    void rememberRoom(null).catch(() => {});
+  };
   const leave = () => setConfirmation("leave");
   const finish = () => setConfirmation("finish");
   return (
     <SafeAreaView style={layout.screen} edges={["top", "left", "right"]}>
-      <ScrollView
-        scrollEnabled={!dragging}
-        directionalLockEnabled
-        contentContainerStyle={[
-          layout.content,
-          { paddingTop: 24, paddingBottom: 32 },
-        ]}
-      >
-        {!room && !!route?.params?.deck && (
+      {votingLayout && room ? (
+        <View
+          testID="room-voting-stage"
+          style={[layout.content, styles.votingStage]}
+        >
+          <View style={styles.votingHeader}>
+            <Text accessibilityRole="header" style={styles.brand}>
+              flavorfinder<Text style={{ color: colors.accent }}>.</Text>
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Open room details and group progress"
+              onPress={() => setShowRoomInfo(true)}
+              style={styles.roomInfoButton}
+            >
+              <Text style={styles.secondaryText}>Room · {room.code}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.votingProgress}>
+            {(room.round ?? 1) > 1
+              ? `Runoff ${room.round! - 1}`
+              : "Eat together"}{" "}
+            · Your votes {Object.keys(room.myVotes).length}/{room.deck.length}
+          </Text>
+          {nextId ? (
+            restaurantCard
+          ) : (
+            <View style={[styles.votingCardFrame, styles.waitingCard]}>
+              <Text style={styles.heading}>Your votes are in!</Text>
+              <Text style={layout.subtitle}>
+                Waiting for your friends. The result appears when everyone
+                finishes.
+              </Text>
+            </View>
+          )}
+          <View style={styles.votingActions}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Pass on this restaurant"
+              disabled={busy || !nextId || card?.id !== nextId}
+              onPress={() => voteRef.current(false)}
+              style={[
+                styles.vote,
+                { backgroundColor: colors.paper },
+                (busy || !nextId || card?.id !== nextId) && styles.disabled,
+              ]}
+            >
+              <Text style={styles.secondaryText}>← Pass</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Like this restaurant"
+              disabled={busy || !nextId || card?.id !== nextId}
+              onPress={() => voteRef.current(true)}
+              style={[
+                styles.vote,
+                { backgroundColor: colors.accent },
+                (busy || !nextId || card?.id !== nextId) && styles.disabled,
+              ]}
+            >
+              <Text style={layout.primaryText}>Like →</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Cancel room setup and go back"
-            disabled={busy}
-            accessibilityState={{ disabled: busy }}
-            onPress={() => navigation.goBack()}
-            style={{
-              minHeight: 48,
-              justifyContent: "center",
-              marginBottom: 12,
-            }}
+            accessibilityLabel={
+              error || connection
+                ? "Read room status and connection details"
+                : "View group progress"
+            }
+            onPress={() => setShowRoomInfo(true)}
+            style={styles.stageStatus}
           >
-            <Text style={{ color: colors.green }}>
-              Back · Cancel room setup
+            <Text
+              numberOfLines={2}
+              accessibilityLiveRegion="polite"
+              style={{
+                color: error ? colors.accent : colors.muted,
+                fontSize: 12,
+              }}
+            >
+              {error ||
+                connection ||
+                (busy
+                  ? "Saving your vote…"
+                  : "Private swipes · View group progress")}
             </Text>
           </TouchableOpacity>
-        )}
-        <Text style={styles.eyebrow}>FLAVOR FINDER · EAT TOGETHER</Text>
-        <Text style={[layout.title, { marginTop: 10 }]}>
-          {room?.status === "finished"
-            ? "Dinner, decided."
-            : "Less debating.\nMore eating."}
-        </Text>
-        <Text style={[layout.subtitle, { marginTop: 10, marginBottom: 20 }]}>
-          Same restaurants. Private swipes. One group pick. The host can also
-          start a runoff between tied restaurants.
-        </Text>
-        {!room ? (
-          <>
-            {route?.params?.deck && route.params.nickname ? (
-              <Text style={styles.heading}>Hosting as {name}</Text>
-            ) : (
-              <>
-                <Text accessibilityRole="header" style={styles.heading}>
-                  What should your friends call you?
-                </Text>
-                <TextInput
-                  style={layout.input}
-                  accessibilityLabel="Your name in the room"
-                  placeholder="Your first name or nickname"
-                  value={name}
-                  maxLength={24}
-                  onChangeText={setName}
-                  editable={!busy}
-                />
-              </>
-            )}
-            {route?.params?.deck ? (
-              <>
-                <Text style={layout.subtitle}>
-                  {route.params.deck.length} restaurants in your confirmed group
-                  deck. Rooms hold up to 10 friends and expire after 24 hours.
-                </Text>
-                {!!route.params.searchSummary && (
-                  <Text style={layout.subtitle}>
-                    {route.params.searchSummary}
-                  </Text>
-                )}
-                {button(
-                  "Change area or filters",
-                  () =>
-                    navigation.replace("RoomSetup", { nickname: name.trim() }),
-                  true,
-                )}
-                {button(
-                  "Create room",
-                  () =>
-                    void perform(
-                      "create",
-                      { nickname: name.trim(), ids: route.params!.deck },
-                      newRoomCode(),
-                    ),
-                  false,
-                  !name.trim() || DEMO_MODE,
-                )}
-              </>
-            ) : (
-              <>
-                {button(
-                  "Choose restaurants & create a room",
-                  () =>
-                    navigation.navigate("RoomSetup", { nickname: name.trim() }),
-                  false,
-                  DEMO_MODE,
-                )}
-                <Text style={[styles.heading, { marginTop: 28 }]}>
-                  Already invited?
-                </Text>
-                <TextInput
-                  style={layout.input}
-                  accessibilityLabel="6-digit room code or existing invite code"
-                  placeholder="6-digit room code"
-                  value={code}
-                  maxLength={12}
-                  onChangeText={(v) =>
-                    setCode(v.toUpperCase().replace(/[^A-F0-9]/g, ""))
-                  }
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  editable={!busy}
-                />
-                {button(
-                  "Join room",
-                  () => void perform("join", { nickname: name.trim() }, code),
-                  false,
-                  !name.trim() ||
-                    !/^(?:[0-9]{6}|[A-F0-9]{12})$/.test(code) ||
-                    DEMO_MODE,
-                )}
-              </>
-            )}
-            {DEMO_MODE && (
-              <Text style={[layout.subtitle, { marginTop: 16 }]}>
-                Voting rooms use the live app. Turn off preview mode to connect
-                with friends.
+        </View>
+      ) : (
+        <ScrollView
+          scrollEnabled={!dragging}
+          directionalLockEnabled
+          contentContainerStyle={[
+            layout.content,
+            { paddingTop: 24, paddingBottom: 32 },
+          ]}
+        >
+          {!room && !!route?.params?.deck && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Cancel room setup and go back"
+              disabled={busy}
+              accessibilityState={{ disabled: busy }}
+              onPress={() => navigation.goBack()}
+              style={{
+                minHeight: 48,
+                justifyContent: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ color: colors.green }}>
+                Back · Cancel room setup
               </Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.eyebrow}>FLAVOR FINDER · EAT TOGETHER</Text>
+          <Text style={[layout.title, { marginTop: 10 }]}>
+            {room?.status === "finished"
+              ? "Dinner, decided."
+              : "Less debating.\nMore eating."}
+          </Text>
+          <Text style={[layout.subtitle, { marginTop: 10, marginBottom: 20 }]}>
+            Same restaurants. Private swipes. One group pick. The host can also
+            start a runoff between tied restaurants.
+          </Text>
+          {!room ? (
+            <>
+              {route?.params?.deck && route.params.nickname ? (
+                <Text style={styles.heading}>Hosting as {name}</Text>
+              ) : (
+                <>
+                  <Text accessibilityRole="header" style={styles.heading}>
+                    What should your friends call you?
+                  </Text>
+                  <TextInput
+                    style={layout.input}
+                    accessibilityLabel="Your name in the room"
+                    placeholder="Your first name or nickname"
+                    value={name}
+                    maxLength={24}
+                    onChangeText={setName}
+                    editable={!busy}
+                  />
+                </>
+              )}
+              {route?.params?.deck ? (
+                <>
+                  <Text style={layout.subtitle}>
+                    {route.params.deck.length} restaurants in your confirmed
+                    group deck. Rooms hold up to 10 friends and expire after 24
+                    hours.
+                  </Text>
+                  {!!route.params.searchSummary && (
+                    <Text style={layout.subtitle}>
+                      {route.params.searchSummary}
+                    </Text>
+                  )}
+                  {button(
+                    "Change area or filters",
+                    () =>
+                      navigation.replace("RoomSetup", {
+                        nickname: name.trim(),
+                      }),
+                    true,
+                  )}
+                  {button(
+                    "Create room",
+                    () =>
+                      void perform(
+                        "create",
+                        { nickname: name.trim(), ids: route.params!.deck },
+                        newRoomCode(),
+                      ),
+                    false,
+                    !name.trim() || DEMO_MODE,
+                  )}
+                </>
+              ) : (
+                <>
+                  {button(
+                    "Choose restaurants & create a room",
+                    () =>
+                      navigation.navigate("RoomSetup", {
+                        nickname: name.trim(),
+                      }),
+                    false,
+                    DEMO_MODE,
+                  )}
+                  <Text style={[styles.heading, { marginTop: 28 }]}>
+                    Already invited?
+                  </Text>
+                  <TextInput
+                    style={layout.input}
+                    accessibilityLabel="6-digit room code or existing invite code"
+                    placeholder="6-digit room code"
+                    value={code}
+                    maxLength={12}
+                    onChangeText={(v) =>
+                      setCode(v.toUpperCase().replace(/[^A-F0-9]/g, ""))
+                    }
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    editable={!busy}
+                  />
+                  {button(
+                    "Join room",
+                    () => void perform("join", { nickname: name.trim() }, code),
+                    false,
+                    !name.trim() ||
+                      !/^(?:[0-9]{6}|[A-F0-9]{12})$/.test(code) ||
+                      DEMO_MODE,
+                  )}
+                </>
+              )}
+              {DEMO_MODE && (
+                <Text style={[layout.subtitle, { marginTop: 16 }]}>
+                  Voting rooms use the live app. Turn off preview mode to
+                  connect with friends.
+                </Text>
+              )}
+            </>
+          ) : (
+            <>
+              <View style={styles.panel}>
+                <Text style={styles.eyebrow}>ROOM CODE</Text>
+                <Text selectable style={styles.code}>
+                  {room.code}
+                </Text>
+                <Text style={layout.subtitle}>
+                  {room.members.length}/10 friends · {room.deck.length}{" "}
+                  restaurants ·{" "}
+                  {room.isHost ? "You are hosting" : "You are invited"}
+                </Text>
+                {room.status === "waiting" &&
+                  button(
+                    "Invite friends",
+                    () => {
+                      void Share.share({
+                        message: roomInviteMessage(room.code),
+                      }).catch((e) => setError(e.message));
+                    },
+                    true,
+                  )}
+              </View>
+              {room.status === "waiting" && (
+                <>
+                  <Text style={[styles.heading, { marginTop: 20 }]}>
+                    Gather your dinner crew
+                  </Text>
+                  <Text style={layout.subtitle}>
+                    Everyone gets this exact deck in the same order. Join before
+                    voting starts. Most likes wins; a tie gets one random group
+                    pick.
+                  </Text>
+                  {room.members.map((m, i) => (
+                    <Text key={i} style={styles.member}>
+                      {m.name}
+                      {m.isHost ? " · Host" : ""}
+                    </Text>
+                  ))}
+                  {room.isHost ? (
+                    button(
+                      "Everyone’s here · Start voting",
+                      () => void perform("start"),
+                      false,
+                      room.members.length < 2,
+                    )
+                  ) : (
+                    <Text style={styles.notice}>
+                      Waiting for your host to start…
+                    </Text>
+                  )}
+                </>
+              )}
+              {(room.status === "voting" || room.status === "finished") && (
+                <>
+                  <Text style={[styles.heading, { marginTop: 20 }]}>
+                    {room.status === "finished"
+                      ? room.winner
+                        ? "Your group’s pick"
+                        : "No restaurant got a like"
+                      : `${(room.round ?? 1) > 1 ? `Runoff ${room.round! - 1} · ` : ""}Your votes · ${Object.keys(room.myVotes).length}/${room.deck.length}`}
+                  </Text>
+                  {room.status === "finished" && (
+                    <Text style={layout.subtitle}>
+                      {room.winner
+                        ? room.tied
+                          ? "The top restaurants tied. Flavor Finder randomly picked this winner for everyone."
+                          : "This restaurant earned the most likes from your group."
+                        : "Try a different cuisine or wider search, then create a fresh room."}
+                    </Text>
+                  )}
+                  {restaurantCard}
+                  {room.status === "finished" && room.tied && !!room.round && (
+                    <>
+                      <Text style={styles.notice}>
+                        Keep the random winner above, or vote again on only the
+                        tied restaurants.
+                      </Text>
+                      {room.isHost ? (
+                        button(
+                          "Vote again on tied restaurants",
+                          () => void perform("runoff"),
+                          true,
+                        )
+                      ) : (
+                        <Text style={styles.notice}>
+                          Your host can start a tie-breaking round. Stay here to
+                          join it.
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {room.status === "finished" &&
+                    button("Find a fresh deck", () =>
+                      navigation.navigate("RoomSetup"),
+                    )}
+                </>
+              )}
+              {room.status === "cancelled" && (
+                <Text style={styles.notice}>
+                  The host closed this room. Create or join another room to keep
+                  exploring.
+                </Text>
+              )}
+              {button(
+                room.status === "finished" || room.status === "cancelled"
+                  ? "Back to rooms"
+                  : "Leave room",
+                room.status === "finished" || room.status === "cancelled"
+                  ? () => void perform("leave")
+                  : leave,
+                true,
+              )}
+            </>
+          )}
+          {busy && (
+            <ActivityIndicator
+              style={{ marginTop: 16 }}
+              color={colors.accent}
+            />
+          )}
+          {!!error && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          )}
+          {!!connection &&
+            !room &&
+            !/expired|not found|Join this room/i.test(connection) &&
+            button(
+              "Retry saved room",
+              () => setRestoreRetry((value) => value + 1),
+              true,
             )}
-          </>
-        ) : (
-          <>
-            <View style={styles.panel}>
-              <Text style={styles.eyebrow}>ROOM CODE</Text>
+          {/expired|not found|Join this room/i.test(connection) &&
+            button("Return to rooms", returnToRooms, true)}
+          {!!connection && (
+            <Text accessibilityLiveRegion="polite" style={styles.notice}>
+              {connection}
+            </Text>
+          )}
+        </ScrollView>
+      )}
+      <Modal
+        visible={!!confirmation || (showRoomInfo && votingLayout)}
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          confirmation ? setConfirmation(null) : setShowRoomInfo(false)
+        }
+      >
+        {showRoomInfo && votingLayout && !confirmation ? (
+          <SafeAreaView style={layout.screen}>
+            <ScrollView
+              contentContainerStyle={[layout.content, { paddingVertical: 16 }]}
+            >
+              {button("Back to voting", () => setShowRoomInfo(false), true)}
+              <Text
+                accessibilityRole="header"
+                style={[styles.heading, { marginTop: 20 }]}
+              >
+                Room details
+              </Text>
               <Text selectable style={styles.code}>
-                {room.code}
+                {room?.code}
               </Text>
               <Text style={layout.subtitle}>
-                {room.members.length}/10 friends · {room.deck.length}{" "}
-                restaurants ·{" "}
-                {room.isHost ? "You are hosting" : "You are invited"}
+                {room?.members.length}/10 friends · {room?.deck.length}{" "}
+                restaurants
               </Text>
-              {room.status === "waiting" &&
+              <Text
+                accessibilityRole="header"
+                style={[styles.heading, { marginTop: 20 }]}
+              >
+                Group progress
+              </Text>
+              {room?.members.map((m, i) => (
+                <Text key={i} style={styles.member}>
+                  {m.name}
+                  {m.isHost ? " · Host" : ""} · {m.voted}/{room.deck.length}
+                </Text>
+              ))}
+              {!!error && (
+                <Text accessibilityRole="alert" style={styles.error}>
+                  {error}
+                </Text>
+              )}
+              {!!connection && <Text style={styles.notice}>{connection}</Text>}
+              {/expired|not found|Join this room/i.test(connection) &&
+                button("Return to rooms", returnToRooms, true)}
+              {room?.isHost &&
                 button(
-                  "Invite friends",
+                  "Finish early & pick a restaurant",
                   () => {
-                    void Share.share({
-                      message: roomInviteMessage(room.code),
-                    }).catch((e) => setError(e.message));
+                    finish();
                   },
                   true,
                 )}
-            </View>
-            {room.status === "waiting" && (
-              <>
-                <Text style={[styles.heading, { marginTop: 20 }]}>
-                  Gather your dinner crew
-                </Text>
-                <Text style={layout.subtitle}>
-                  Everyone gets this exact deck in the same order. Join before
-                  voting starts. Most likes wins; a tie gets one random group
-                  pick.
-                </Text>
-                {room.members.map((m, i) => (
-                  <Text key={i} style={styles.member}>
-                    {m.name}
-                    {m.isHost ? " · Host" : ""}
-                  </Text>
-                ))}
-                {room.isHost ? (
-                  button(
-                    "Everyone’s here · Start voting",
-                    () => void perform("start"),
-                    false,
-                    room.members.length < 2,
-                  )
-                ) : (
-                  <Text style={styles.notice}>
-                    Waiting for your host to start…
-                  </Text>
-                )}
-              </>
-            )}
-            {(room.status === "voting" || room.status === "finished") && (
-              <>
-                <Text style={[styles.heading, { marginTop: 20 }]}>
-                  {room.status === "finished"
-                    ? room.winner
-                      ? "Your group’s pick"
-                      : "No restaurant got a like"
-                    : `${(room.round ?? 1) > 1 ? `Runoff ${room.round! - 1} · ` : ""}Your votes · ${Object.keys(room.myVotes).length}/${room.deck.length}`}
-                </Text>
-                {room.status === "finished" && (
-                  <Text style={layout.subtitle}>
-                    {room.winner
-                      ? room.tied
-                        ? "The top restaurants tied. Flavor Finder randomly picked this winner for everyone."
-                        : "This restaurant earned the most likes from your group."
-                      : "Try a different cuisine or wider search, then create a fresh room."}
-                  </Text>
-                )}
-                {nextId && (
-                  <View style={styles.cardFrame}>
-                    {card?.id === nextId ? (
-                      <Animated.View
-                        key={nextId}
-                        {...(room.status === "voting" ? pan.panHandlers : {})}
-                        style={[
-                          styles.card,
-                          { transform: [{ translateX: position }] },
-                        ]}
-                      >
-                        <RestaurantImage
-                          uri={card.image_url}
-                          style={{ height: 190 }}
-                        />
-                        <ScrollView
-                          style={{ flex: 1 }}
-                          contentContainerStyle={{ padding: 18 }}
-                          nestedScrollEnabled
-                          scrollEnabled={!dragging}
-                        >
-                          <Text style={styles.heading}>{card.name}</Text>
-                          <Text style={layout.subtitle}>
-                            ★ {card.rating.toFixed(1)}{" "}
-                            {card.price ? ` · ${card.price}` : ""}
-                          </Text>
-                          <Text style={[layout.subtitle, { marginTop: 8 }]}>
-                            {card.location.address1}
-                          </Text>
-                          {room.status === "finished" && (
-                            <Text style={styles.notice}>
-                              {room.scores?.[card.id] ?? 0} likes
-                            </Text>
-                          )}
-                          {button(
-                            "Restaurant details & directions",
-                            () =>
-                              navigation.navigate("RestaurantDetail", {
-                                id: card.id,
-                              }),
-                            true,
-                          )}
-                        </ScrollView>
-                        <View
-                          style={{ paddingHorizontal: 18, paddingBottom: 12 }}
-                        >
-                          <GoogleAttribution
-                            authors={card.photo_attributions}
-                            providers={card.provider_attributions}
-                            photoSource={card.photo_source_uri}
-                          />
-                        </View>
-                      </Animated.View>
-                    ) : (
-                      <View style={[styles.card, styles.cardPlaceholder]}>
-                        {cardError ? (
-                          <>
-                            <Text style={layout.subtitle}>{cardError}</Text>
-                            {button(
-                              "Retry restaurant",
-                              () => setRetry((v) => v + 1),
-                              true,
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <ActivityIndicator color={colors.accent} />
-                            <Text style={styles.notice}>
-                              Loading restaurant…
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                )}
-                {room.status === "voting" && nextId && (
-                  <View style={[layout.row, { gap: 12, marginTop: 16 }]}>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      accessibilityLabel="Pass on this restaurant"
-                      disabled={busy || !card || card.id !== nextId}
-                      onPress={() => voteRef.current(false)}
-                      style={[styles.vote, { backgroundColor: colors.paper }]}
-                    >
-                      <Text style={styles.secondaryText}>← Pass</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      accessibilityLabel="Like this restaurant"
-                      disabled={busy || !card || card.id !== nextId}
-                      onPress={() => voteRef.current(true)}
-                      style={[styles.vote, { backgroundColor: colors.accent }]}
-                    >
-                      <Text style={layout.primaryText}>Like →</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {room.status === "voting" && !nextId && (
-                  <Text style={styles.notice}>
-                    Your votes are in! Waiting for your friends. The result
-                    appears when everyone finishes.
-                  </Text>
-                )}
-                {room.status === "voting" && (
-                  <>
-                    <Text style={[styles.heading, { marginTop: 22 }]}>
-                      Group progress
-                    </Text>
-                    {room.members.map((m, i) => (
-                      <Text key={i} style={styles.member}>
-                        {m.name}
-                        {m.isHost ? " · Host" : ""} · {m.voted}/
-                        {room.deck.length}
-                      </Text>
-                    ))}
-                    {room.isHost &&
-                      button("Finish early & pick a restaurant", finish, true)}
-                  </>
-                )}
-                {room.status === "finished" && room.tied && !!room.round && (
-                  <>
-                    <Text style={styles.notice}>
-                      Keep the random winner above, or vote again on only the
-                      tied restaurants.
-                    </Text>
-                    {room.isHost ? (
-                      button(
-                        "Vote again on tied restaurants",
-                        () => void perform("runoff"),
-                        true,
-                      )
-                    ) : (
-                      <Text style={styles.notice}>
-                        Your host can start a tie-breaking round. Stay here to
-                        join it.
-                      </Text>
-                    )}
-                  </>
-                )}
-                {room.status === "finished" &&
-                  button("Find a fresh deck", () =>
-                    navigation.navigate("RoomSetup"),
-                  )}
-              </>
-            )}
-            {room.status === "cancelled" && (
-              <Text style={styles.notice}>
-                The host closed this room. Create or join another room to keep
-                exploring.
-              </Text>
-            )}
-            {button(
-              room.status === "finished" || room.status === "cancelled"
-                ? "Back to rooms"
-                : "Leave room",
-              room.status === "finished" || room.status === "cancelled"
-                ? () => void perform("leave")
-                : leave,
-              true,
-            )}
-          </>
-        )}
-        {busy && (
-          <ActivityIndicator style={{ marginTop: 16 }} color={colors.accent} />
-        )}
-        {!!error && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {error}
-          </Text>
-        )}
-        {!!connection &&
-          !room &&
-          !/expired|not found|Join this room/i.test(connection) &&
-          button(
-            "Retry saved room",
-            () => setRestoreRetry((value) => value + 1),
-            true,
-          )}
-        {/expired|not found|Join this room/i.test(connection) &&
-          button(
-            "Return to rooms",
-            () => {
-              setRoom(null);
-              setConnection("");
-              void rememberRoom(null).catch(() => {});
-            },
-            true,
-          )}
-        {!!connection && (
-          <Text accessibilityLiveRegion="polite" style={styles.notice}>
-            {connection}
-          </Text>
-        )}
-      </ScrollView>
-      <Modal
-        visible={!!confirmation}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setConfirmation(null)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "#20382E88",
-            justifyContent: "center",
-            padding: 24,
-          }}
-        >
+              {button(
+                "Leave room",
+                () => {
+                  leave();
+                },
+                true,
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        ) : (
           <View
-            style={[
-              styles.panel,
-              { width: "100%", maxWidth: 472, alignSelf: "center" },
-            ]}
+            style={{
+              flex: 1,
+              backgroundColor: "#20382E88",
+              justifyContent: "center",
+              padding: 24,
+            }}
           >
-            <Text style={styles.heading}>
-              {confirmation === "finish"
-                ? "Pick a restaurant now?"
-                : room?.isHost
-                  ? "Leave and close this room?"
-                  : "Leave this room?"}
-            </Text>
-            <Text style={layout.subtitle}>
-              {confirmation === "finish"
-                ? "Only votes already submitted by people still in the room will count."
-                : room?.isHost
-                  ? "Your friends will see that this room has closed."
-                  : "Your votes will not count in an unfinished room."}
-            </Text>
-            {button(
-              confirmation === "finish" ? "Pick now" : "Leave room",
-              () => {
-                const action = confirmation!;
-                setConfirmation(null);
-                void perform(action);
-              },
-            )}
-            {button(
-              confirmation === "finish" ? "Keep voting" : "Stay",
-              () => setConfirmation(null),
-              true,
-            )}
+            <View
+              style={[
+                styles.panel,
+                { width: "100%", maxWidth: 472, alignSelf: "center" },
+              ]}
+            >
+              <Text style={styles.heading}>
+                {confirmation === "finish"
+                  ? "Pick a restaurant now?"
+                  : room?.isHost
+                    ? "Leave and close this room?"
+                    : "Leave this room?"}
+              </Text>
+              <Text style={layout.subtitle}>
+                {confirmation === "finish"
+                  ? "Only votes already submitted by people still in the room will count."
+                  : room?.isHost
+                    ? "Your friends will see that this room has closed."
+                    : "Your votes will not count in an unfinished room."}
+              </Text>
+              {button(
+                confirmation === "finish" ? "Pick now" : "Leave room",
+                () => {
+                  const action = confirmation!;
+                  setConfirmation(null);
+                  setShowRoomInfo(false);
+                  void perform(action);
+                },
+              )}
+              {button(
+                confirmation === "finish" ? "Keep voting" : "Stay",
+                () => setConfirmation(null),
+                true,
+              )}
+            </View>
           </View>
-        </View>
+        )}
       </Modal>
     </SafeAreaView>
   );
@@ -827,6 +946,40 @@ const styles = StyleSheet.create({
   },
   cardFrame: { height: 500, marginTop: 18 },
   cardPlaceholder: { justifyContent: "center", padding: 20 },
+  votingStage: { flex: 1, paddingTop: 8, paddingBottom: 8 },
+  votingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  brand: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: colors.ink,
+    letterSpacing: -0.8,
+    flexShrink: 1,
+  },
+  roomInfoButton: {
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  votingProgress: { fontSize: 14, color: colors.green, paddingVertical: 8 },
+  votingCardFrame: { flex: 1, minHeight: 0, marginTop: 4 },
+  votingActions: { flexDirection: "row", gap: 12, marginTop: 12 },
+  stageStatus: { height: 44, justifyContent: "center" },
+  waitingCard: {
+    justifyContent: "center",
+    padding: 24,
+    borderRadius: 24,
+    backgroundColor: colors.paper,
+  },
+  disabled: { opacity: 0.5 },
   vote: {
     flex: 1,
     alignItems: "center",

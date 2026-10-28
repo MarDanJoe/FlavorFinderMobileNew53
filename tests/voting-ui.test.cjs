@@ -225,8 +225,11 @@ test("voting owns horizontal gestures, locks scrolling, submits one vote and sta
   await new Promise((resolve) => setImmediate(resolve));
   h.render();
   assert.deepEqual(h.actions, [["vote", "ABC", { place: "a", liked: true }]]);
+  // The next card is loading; the screen itself remains a fixed View.
+  assert.ok(h.nodes().find((n) => n.props.testID === "room-voting-stage"));
   assert.equal(
-    h.nodes().find((n) => n.type === "ScrollView").props.scrollEnabled,
+    h.nodes().find((n) => n.props.accessibilityLabel === "Like this restaurant")
+      .props.disabled,
     true,
   );
   assert.deepEqual(h.navigationCalls, []);
@@ -417,10 +420,9 @@ test("room card reserves identical height during loading, errors and restaurant 
   ]) {
     h.slots[7] = { value: card };
     h.render();
-    assert.equal(
-      h.nodes().filter((n) => n.props.style?.height === 500).length,
-      1,
-    );
+    const frame = h.nodes().find((n) => n.props.testID === "room-card-frame");
+    assert.equal(frame.props.style.flex, 1);
+    assert.equal(frame.props.style.minHeight, 0);
   }
 });
 
@@ -444,4 +446,125 @@ test("only host sees runoff control and submits the finished round number", asyn
   h.slots[0].value = { ...room, isHost: false };
   h.render();
   assert.equal(h.button("Vote again on tied restaurants"), undefined);
+});
+
+function votingHarness() {
+  return harness("src/screens/RoomsScreen.tsx", [
+    {
+      code: "001234",
+      round: 2,
+      status: "voting",
+      deck: ["a", "b"],
+      myVotes: {},
+      members: [
+        { name: "Host", isHost: true, voted: 0 },
+        { name: "Friend", voted: 0 },
+      ],
+      isHost: true,
+    },
+    "",
+    "",
+    false,
+    false,
+    "",
+    "",
+    {
+      id: "a",
+      name: "A long restaurant name",
+      rating: 4.8,
+      location: { address1: "Main Street" },
+    },
+  ]);
+}
+test("active voting keeps the deck and controls in a fixed stage and opens progress separately", () => {
+  const h = votingHarness();
+  h.render();
+  const stage = h.nodes().find((n) => n.props.testID === "room-voting-stage");
+  assert.equal(stage.type, "View");
+  assert.equal(stage.props.style[1].flex, 1);
+  assert.equal(h.button("Back to voting"), undefined);
+  assert.ok(
+    h
+      .nodes()
+      .find((n) => n.props.accessibilityLabel === "Like this restaurant"),
+  );
+  const frame = h.nodes().find((n) => n.props.testID === "room-card-frame");
+  frame.props.onLayout({ nativeEvent: { layout: { height: 280 } } });
+  h.render();
+  assert.equal(
+    h.nodes().find((n) => n.type === "Image").props.style.height,
+    98,
+  );
+  h.nodes()
+    .find(
+      (n) =>
+        n.props.accessibilityLabel === "Open room details and group progress",
+    )
+    .props.onPress();
+  h.render();
+  assert.equal(h.nodes().find((n) => n.type === "Modal").props.visible, true);
+  assert.ok(h.button("Finish early & pick a restaurant"));
+  h.button("Back to voting").props.onPress();
+  h.render();
+  assert.equal(h.nodes().find((n) => n.type === "Modal").props.visible, false);
+  assert.deepEqual(h.actions, []);
+});
+test("room controls keep early-finish confirmation in the same modal and allow cancellation", () => {
+  const h = votingHarness();
+  h.render();
+  h.nodes()
+    .find(
+      (n) =>
+        n.props.accessibilityLabel === "Open room details and group progress",
+    )
+    .props.onPress();
+  h.render();
+  h.button("Finish early & pick a restaurant").props.onPress();
+  h.render();
+  assert.equal(h.nodes().filter((n) => n.type === "Modal").length, 1);
+  assert.ok(h.button("Pick now"));
+  assert.deepEqual(h.actions, []);
+  h.button("Keep voting").props.onPress();
+  h.render();
+  assert.ok(h.button("Back to voting"));
+  assert.deepEqual(h.actions, []);
+});
+test("completed personal votes keep a fixed waiting stage with disabled voting controls", () => {
+  const h = votingHarness();
+  h.slots[0].value.myVotes = { a: true, b: false };
+  h.render();
+  assert.ok(h.nodes().find((n) => n.props.testID === "room-voting-stage"));
+  assert.equal(
+    h
+      .nodes()
+      .find((n) => n.props.accessibilityLabel === "Pass on this restaurant")
+      .props.disabled,
+    true,
+  );
+  assert.equal(
+    h.nodes().find((n) => n.props.accessibilityLabel === "Like this restaurant")
+      .props.disabled,
+    true,
+  );
+});
+
+test("expired voting rooms retain an exit through room details", () => {
+  const h = votingHarness();
+  h.slots[6].value = "Room expired or not found";
+  h.render();
+  h.nodes()
+    .find(
+      (n) =>
+        n.props.accessibilityLabel === "Open room details and group progress",
+    )
+    .props.onPress();
+  h.render();
+  h.button("Return to rooms").props.onPress();
+  h.render();
+  assert.equal(
+    h.nodes().find((n) => n.props.testID === "room-voting-stage"),
+    undefined,
+  );
+  assert.equal(h.nodes().find((n) => n.type === "Modal").props.visible, false);
+  assert.deepEqual(h.actions, []);
 });
