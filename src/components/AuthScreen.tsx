@@ -22,6 +22,13 @@ export function AuthScreen({ register = false }: { register?: boolean }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const auth = useAuth();
+  const closeAuth = () => {
+    // Preserve the existing tabs, but remove every completed auth modal.
+    const state = navigation.getState();
+    const main = state.routes.find((route) => route.name === "MainApp");
+    if (main) navigation.reset({ ...state, index: 0, routes: [main] });
+    else navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+  };
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -61,7 +68,7 @@ export function AuthScreen({ register = false }: { register?: boolean }) {
       if (confirming) {
         await auth.confirmEmail(email, code);
         setCode("");
-        navigation.navigate("MainApp");
+        closeAuth();
       } else if (recovering) {
         await auth.resetPassword(email, code, password);
         setRecovering(false);
@@ -71,7 +78,7 @@ export function AuthScreen({ register = false }: { register?: boolean }) {
         setNotice("Password updated. Sign in with your new password.");
       } else if (register) {
         const signedIn = await auth.signUp(email, name, password);
-        if (signedIn) navigation.navigate("MainApp");
+        if (signedIn) closeAuth();
         else {
           setConfirming(true);
           setResendWait(60);
@@ -83,7 +90,7 @@ export function AuthScreen({ register = false }: { register?: boolean }) {
         }
       } else {
         await auth.signIn(email, password);
-        navigation.navigate("MainApp");
+        closeAuth();
       }
     } catch (err) {
       setError(
@@ -267,7 +274,7 @@ export function AuthScreen({ register = false }: { register?: boolean }) {
           </TouchableOpacity>
           <TouchableOpacity
             disabled={busy}
-            onPress={() => navigation.navigate(register ? "Login" : "Register")}
+            onPress={() => navigation.replace(register ? "Login" : "Register")}
             style={{ paddingVertical: 24, alignItems: "center" }}
           >
             <Text
@@ -371,7 +378,7 @@ export function AuthScreen({ register = false }: { register?: boolean }) {
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            onPress={() => navigation.navigate("MainApp")}
+            onPress={() => closeAuth()}
             style={{ padding: 16, alignItems: "center" }}
           >
             <Text style={{ color: colors.green }}>Continue exploring</Text>

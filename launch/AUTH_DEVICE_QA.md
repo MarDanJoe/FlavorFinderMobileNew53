@@ -13,3 +13,9 @@ Use a dedicated disposable account on the signed app; keep email codes/passwords
 - Change guest/registered identity during voting; original votes/membership must not appear under the new identity.
 
 Record date, build, device/iOS, expected/actual result and failures before completing launch gates. Keep the reviewer account separate from the disposable deletion test account.
+
+## October 29 — device findings and prepared navigation fix
+
+Owner reports saving a restaurant succeeded on the registered test account. An incorrect password during deletion returned “invalid login creds”; this verifies rejection only, not completed account deletion. Correct-password deletion remains pending on the disposable account.
+
+Owner could dismiss the main app through older creation/confirmation sheets. Auth completion previously pushed another MainApp route. Prepared fix resets the root stack to the existing MainApp route (preserving tab state), and replaces Login/Register when switching forms. Guest exit clears auth history too. Password recovery and failed authentication remain on the form. Eight component-handler regressions cover these paths. This change requires the next signed build and device confirmation; it is not in build 15.
