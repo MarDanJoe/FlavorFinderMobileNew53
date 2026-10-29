@@ -18,7 +18,7 @@ Status: preparing, not submitted or public. Scope: iPhone, United States, free d
 
 ### 1. Final build and device acceptance
 
-- [ ] Resolve the compatible dependency remediation/reachability review before selecting the binary. Refreshed npm audit: nine affected dependency entries (four high, five low); no forced framework downgrade. See DEPENDENCY_REVIEW.md.
+- [ ] Resolve the compatible dependency remediation/reachability review before selecting the binary. Compatible node-forge patch completed and clean-install/export/tests passed. Remaining npm audit: eight affected dependency entries (three high, five low); no forced framework downgrade. See DEPENDENCY_REVIEW.md.
 - [ ] Create the next release candidate with the fixed voting viewport; retain current test-ad build settings until live-ad readiness is verified.
 - [ ] Test fixed voting layout, modal progress/leave/early-finish controls, loading/error/waiting states, larger text and a compact iPhone.
 - [ ] Test app close/reopen/rejoin during voting; verify membership/votes recover and both devices get one shared winner.
