@@ -1,5 +1,7 @@
 # Improvement roadmap
 
+Current release planning: October 29, 2026. See launch/FIRST_PUBLIC_RELEASE.md for evidence and submission gates. Room migration/invite page are deployed, build 15 has owner device results, and the fixed active-voting viewport is prepared but not distributed. The dated October 19 review sequence below is retained as audit history.
+
 October 19, 2026. Audit details, evidence, complexity and verification are in AUDIT_REPORT.md. This supplements the launch checklist; historical launch notes do not override newer evidence.
 
 ## Completed on the review branch
@@ -13,7 +15,7 @@ October 19, 2026. Audit details, evidence, complexity and verification are in AU
 - [x] FF-04: prepare read-only CI; hosted execution and branch protection pending.
 - [x] FF-05: correct current README and add consolidated engineering documents.
 
-No database migration or hosted deployment was performed. Existing builds do not contain these branch-only fixes.
+At the October 19 audit checkpoint, no database migration or hosted deployment had been performed. That historical statement is superseded by the October 27 deployment evidence and current release plan.
 
 ## Sequence 1 — close release blockers
 

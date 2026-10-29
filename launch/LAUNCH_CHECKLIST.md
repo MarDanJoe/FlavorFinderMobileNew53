@@ -2,12 +2,13 @@
 
 October 19 engineering review: see [current audit](../AUDIT_REPORT.md) and [prioritized roadmap](../IMPROVEMENT_ROADMAP.md). Local review fixes are on `codex/architecture-review`, not deployed. Older dated sections below are historical evidence; they do not establish current build or account status.
 
-## Current status — October 12, 2026
+## Current release status — October 29, 2026
 
-Apple membership and App Store Connect record are active. Build 10 is available to Danny and Isabelle for internal testing. Solo discovery, saves, location, swipe/scroll and Call have owner-confirmed device results. Two-person voting and device accessibility/sync/deletion remain open. Build 10 includes Saved pagination/partial-error handling. Provider request-category logs are deployed. The signed archive manifest inventory is recorded in NATIVE_PRIVACY_MANIFESTS.md; final privacy declarations remain pending. The shared daily cap remains 100; the $5 budget is an alert, not a spending stop. Public release has not been submitted. Historical setup instructions below are reference steps, not a claim that Apple enrollment remains pending.
+See [first public release plan](FIRST_PUBLIC_RELEASE.md) for the current gates. Build 15 is installed and owner-tested; the fixed active-voting viewport is committed on the review branch and still needs a new signed binary/device check. The room short-code/runoff migration and public invite page are deployed and verified. Public App Store submission has not occurred. The owner requests live Saved-page ads, but current EAS production builds still pin test ads. Apple individual seller identity remains subject to the owner's privacy decision.
 
+Observed device results: Discover header/card/buttons fit without scrolling; same-session Saved reuse added no requests; two-phone room entry did not repeat the name prompt; tied results and the two-place runoff showed the same winner; voting cards stayed the same size. Invite installation, reconnect, account synchronization/deletion, final accessibility and public-release ad behavior remain pending. Earlier startup request activity remains unattributed. The shared backend cap is 300/day, while separately recorded Google method caps were 100 each and must be rechecked before launch. Neither these request caps nor the $5 budget alert constitute a dollar spending ceiling.
 
-This is a working launch checklist, not a certification that the app is ready. Expo and Supabase accounts are connected; the database migration, guest authentication, and both backend functions are deployed. Remaining external setup is listed below. The first release is iPhone focused.
+The dated sections below are historical setup references. They do not override the current release plan or prove current service/account status.
 
 ## Owner setup — use accounts you own
 
@@ -26,8 +27,9 @@ For future CLI deployments, install the Supabase CLI and sign in locally. Never 
 ```sh
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
-supabase secrets set GOOGLE_PLACES_API_KEY=YOUR_ROTATED_SERVER_KEY GOOGLE_DAILY_REQUEST_LIMIT=100
+# Do not blindly run db push: the live project has no migration ledger.
+# Apply only an approved, reviewed migration after backup and compatibility checks.
+supabase secrets set GOOGLE_PLACES_API_KEY=YOUR_ROTATED_SERVER_KEY GOOGLE_DAILY_REQUEST_LIMIT=300
 supabase functions deploy places
 supabase functions deploy delete-account
 ```

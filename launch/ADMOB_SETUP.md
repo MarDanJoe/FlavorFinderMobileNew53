@@ -30,3 +30,8 @@ No live activation or revenue claim in this pass. Public policy updated prospect
 npm audit reported 17 high-severity entries, largely propagated through existing Expo/React Native/Metro and node-forge/braces dependency chains (including the new SDK's peer links). Its suggested fix would downgrade Expo 57 to 44 and React Native 0.86 to 0.72; no forced downgrade applied. SDK install adds no separate direct advisory beyond those peer chains. Full report is in ignored temporary local evidence; remediation remains a separate launch review item.
 
 Sources: https://developers.google.com/admob/ios/test-ads ; https://developers.google.com/admob/ios/privacy/data-disclosure ; https://docs.page/invertase/react-native-google-mobile-ads/european-user-consent ; https://support.google.com/admob/answer/9363762 .
+
+
+## October 29 public-release preparation
+
+Owner selected live Saved-page ads for the first public release. This is the planned configuration, not confirmation that live inventory or AdMob account readiness is active. Current EAS production builds remain pinned to test mode. The public hostname-root app-ads.txt was fetched successfully today and its publisher line matches the configured account. AdMob crawler verification, app readiness/store linking, bank verification and final consent/privacy/device checks are still unverified. See FIRST_PUBLIC_RELEASE.md before changing the release profile.

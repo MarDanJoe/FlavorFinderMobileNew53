@@ -1,0 +1,19 @@
+{
+  "name": "Flavor Finder: Swipe & Vote",
+  "subtitle": "Swipe. Vote. Eat together.",
+  "promotionalText": "Discover restaurants, save your favorites, and pick dinner together. Friends swipe the same deck, with a shared winner or another round to break a tie.",
+  "description": "Make choosing where to eat part of the fun.\n\nDiscover restaurants near you or in a city you choose. Filter by cuisine, budget, rating, distance and opening hours, then sort loaded results by rating, distance or price. Save places you want to try and explore available photos, reviews and restaurant details.\n\nEating with friends? Create a room, share its six-digit code or invitation, and swipe the same restaurant deck together. Flavor Finder counts the likes and shows everyone the same group pick. If the top choices tie, keep the random winner or let the host start another round with only the tied restaurants.\n\n• Explore as a guest, or create an account to sync saved places and preferences.\n• Use your location or search a city or ZIP code.\n• Invite up to 10 people to vote on 2–20 restaurants.\n• Keep individual votes private during voting and see group results afterward.\n• Save favorites and open available restaurant contact, website and map links.\n\nFlavor Finder includes advertising on the Saved screen. There are no paid memberships or in-app purchases in this version.\n\nRestaurant information is provided by Google Maps. Hours, prices, availability and ratings can change; confirm important details with the restaurant. Internet access is required for restaurant discovery and group voting.",
+  "keywords": "restaurants,food,dining,group,vote,swipe,nearby,cuisine,favorites,date night",
+  "primaryCategory": "FOOD_AND_DRINK",
+  "territories": ["USA"],
+  "price": "FREE",
+  "releaseType": "MANUAL",
+  "supportUrl": "https://mardanjoe.github.io/FlavorFinderMobileNew53/support.html",
+  "privacyUrl": "https://mardanjoe.github.io/FlavorFinderMobileNew53/privacy.html",
+  "marketingUrl": "https://mardanjoe.github.io/FlavorFinderMobileNew53/",
+  "supportEmail": "ohlqcommunity@gmail.com",
+  "copyright": "2026 Danny Ambrose",
+  "status": "DRAFT_NOT_UPLOADED",
+  "reviewNotes": "Flavor Finder supports restaurant discovery and local saved places without creating a registered account. Location permission is optional: change the discovery location and search a city or ZIP code, such as Columbus, Ohio.\n\nFor group voting, use two devices or independent sessions. The host opens Eat Together, enters a nickname, chooses an area and filters, searches, confirms the shared deck and creates a room. The second participant opens Eat Together, enters a nickname and joins with the six-digit code before the host starts voting. Rooms support 2–20 restaurants and up to 10 people. Start voting from the host device; both participants can swipe or use Pass/Like buttons. Room details and group progress are accessible from the compact room button during voting. A completed group result is shared by all members. On ties, a persisted random winner is shown and the host can start a runoff restricted to tied restaurants. Rooms expire after 24 hours.\n\nRegistration is optional for syncing saved place IDs and preferences. A dedicated confirmed review account will be supplied in App Store Connect's private review fields. Profile provides account deletion after password reauthentication. Do not use the review account for the deletion test; use a separate disposable account.\n\nThe planned public release includes a non-personalized AdMob banner on Saved, with consent handling before ad requests. No memberships or in-app purchases are included. Advertising configuration and final native disclosures must be verified against the selected release binary before these notes are uploaded.",
+  "identityNote": "Owner prefers Danny Ambrose for draft copyright/contact. This does not change the verified Apple individual seller name."
+}

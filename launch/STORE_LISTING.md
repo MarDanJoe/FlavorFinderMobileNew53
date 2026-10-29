@@ -1,6 +1,6 @@
-# App Store listing draft — October 12, 2026
+# App Store listing draft — October 29, 2026
 
-App Store Connect record 6821721808 exists; internal TestFlight testing is underway. Public submission remains pending. Copyright owner, signed-device screenshots, age rating and final privacy answers remain open.
+App Store Connect record 6821721808 exists. The owner has tested build 15. The fixed voting viewport is prepared on the review branch but not distributed. Public submission remains pending. The copy in store-metadata.en-US.json is the current structured submission draft; it has not been uploaded. Owner requests live Saved-page ads. Copyright/public identity, screenshots, age rating and final privacy answers remain open.
 
 Name: Flavor Finder: Swipe & Vote
 Subtitle: Swipe. Vote. Eat together.
@@ -12,7 +12,7 @@ Make choosing where to eat part of the fun.
 
 Flavor Finder helps you discover restaurants near you or in a city you choose. Filter by cuisine, budget, rating, distance and whether a place is open. Save the places you want to try and explore available photos, reviews and restaurant details.
 
-Eating with friends? Create a voting room and share its code or invitation. Everyone swipes the same restaurant deck, and Flavor Finder tallies the votes. If the top choices tie, it randomly selects one winner for the whole room. If everyone passes, you can try a new deck.
+Eating with friends? Create a voting room and share its six-digit code or invitation. Everyone swipes the same restaurant deck, and Flavor Finder tallies the votes. If the top choices tie, it randomly selects one winner for the whole room, and the host can start a runoff using just the tied restaurants. If everyone passes, you can try a new deck.
 
 • Discover restaurants as a guest, or create an account to sync saved places.
 • Use your location or search a city or ZIP code.
@@ -23,10 +23,12 @@ Eating with friends? Create a voting room and share its code or invitation. Ever
 
 Restaurant information is provided by Google Maps. Hours, prices, availability and ratings may change; confirm important details directly with the restaurant. Internet access is required for restaurant discovery and group voting.
 
+Advertising: the planned first public release includes a non-personalized Saved-page banner. Live serving has not been enabled; AdMob readiness and disclosures must be verified before release.
+
 Keywords draft: restaurants,food,dining,group,vote,swipe,nearby,cuisine,favorites,date night
 Category candidate: Food & Drink
 Initial territory: United States
-Copyright: LEGAL OWNER NAME REQUIRED BEFORE SUBMISSION
+Copyright draft: 2026 Danny Ambrose (owner-selected display preference). Apple’s verified individual seller/developer name is separate and may remain Daniel Leonard Ambrose. No Apple identity change is implied.
 Support URL: https://mardanjoe.github.io/FlavorFinderMobileNew53/support.html
 Privacy URL: https://mardanjoe.github.io/FlavorFinderMobileNew53/privacy.html
 Terms URL: https://mardanjoe.github.io/FlavorFinderMobileNew53/terms.html
@@ -44,12 +46,12 @@ Capture from the signed production app at Apple's required dimensions. Keep Goog
 
 ## App Review notes
 
-Flavor Finder uses Google Places API (New). The next internal build includes a Google test banner on Saved. Live advertising is not enabled yet; revise final store metadata/privacy answers before enabling live inventory. No paid memberships or in-app purchases are included. Location access is optional: use Change location and enter a city or ZIP code. Guest sessions support discovery, local favorites and voting; email/password registration is optional for cloud favorites/preferences. Room membership belongs to the session that joined.
+Flavor Finder uses Google Places API (New). Current TestFlight builds use a Google test banner on Saved. Live advertising is not enabled yet; revise final store metadata/privacy answers before enabling live inventory. No paid memberships or in-app purchases are included. Location access is optional: use Change location and enter a city or ZIP code. Guest sessions support discovery, local favorites and voting; email/password registration is optional for cloud favorites/preferences. Room membership belongs to the session that joined.
 
 Suggested review path:
 1. Continue as guest and search a city (for example Columbus, Ohio). Open a restaurant detail to view Google/source credits.
 2. Create a room using restaurant selections, enter a display name and share the code with a second device/session. Join before the host starts voting; joining after voting starts is rejected.
-3. Start voting as host and swipe the shared deck on both devices. Progress is shared; individual choices stay private during voting. Completion displays the same winner to every member. A tie is resolved once with a persisted random choice. The host can confirm finishing early. All-pass results explain that no restaurant was selected.
+3. Start voting as host and swipe the shared deck on both devices. Progress is shared; individual choices stay private during voting. Completion displays the same winner to every member. A tie has a persisted random choice, with an optional host-started runoff. The host can confirm finishing early. All-pass results explain that no restaurant was selected.
 4. Register/confirm an account or use the confirmed review account supplied securely in App Store Connect. Save a favorite and sign in on another device to verify cloud sync.
 5. Profile offers account deletion after password reauthentication. Use a dedicated disposable review account for deletion; a fresh confirmed account will be needed afterward.
 

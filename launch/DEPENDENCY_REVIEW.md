@@ -26,3 +26,8 @@ Audit JSON remains outside Git at `/private/tmp/flavorfinder-review-audit.json`;
 - Follow compatible upstream fixes. Before adopting a fix, refresh audit, verify no framework downgrade, clean-install, generate/export/native-build and rerun the complete suite.
 - Do not disable security checks or maintain an ad hoc cryptography patch merely to produce a green audit summary.
 - Keep FF-08 open until reachability/mitigation or a compatible upstream remediation is reviewed and accepted. Test-only advertising does not resolve these tooling advisories.
+
+
+## October 29 release-preparation refresh
+
+Fresh npm audit reports nine affected dependency entries: four high and five low, zero critical. These are dependency entries, not nine distinct advisories. Root advisories are node-forge (GHSA-86w9-cpqp-85rv, installed 1.4.0), zod (GHSA-mrhx-c7xc-m3w5, installed 3.25.76) and deepmerge (GHSA-gcqx-w48m-w2h4, installed 4.3.1), with propagated Expo toolchain findings. npm reports a fix path for node-forge; its linked GitHub advisory still listed no patched version at the check. Verify actual compatible registry versions and reachability before claiming it fixed. The Zod advisory names 4.6.6 as patched; a major-version override of the toolchain's Zod 3 cannot be assumed compatible. npm's suggested Expo 51 downgrade is not an accepted remedy. No dependency or lockfile was changed in this release-planning pass. The report is saved in ignored /private/tmp/flavor-release-audit-20261029.json; current signed-native and build-tool reachability remain review work.
