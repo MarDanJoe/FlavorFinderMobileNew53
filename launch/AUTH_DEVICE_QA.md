@@ -16,6 +16,6 @@ Record date, build, device/iOS, expected/actual result and failures before compl
 
 ## October 29 — device findings and prepared navigation fix
 
-Owner reports saving a restaurant succeeded on the registered test account. An incorrect password during deletion returned “invalid login creds”; this verifies rejection only, not completed account deletion. Correct-password deletion remains pending on the disposable account.
+Owner reports saving a restaurant succeeded on the registered test account. An incorrect password during deletion returned “invalid login creds”; this verifies rejection only, not completed account deletion. Owner subsequently confirmed correct-password deletion completed and the old credentials could no longer sign in. Device deletion flow passes; server-side retention/backup cleanup was not independently audited.
 
 Owner could dismiss the main app through older creation/confirmation sheets. Auth completion previously pushed another MainApp route. Prepared fix resets the root stack to the existing MainApp route (preserving tab state), and replaces Login/Register when switching forms. Guest exit clears auth history too. Password recovery and failed authentication remain on the form. Eight component-handler regressions cover these paths. This change requires the next signed build and device confirmation; it is not in build 15.
