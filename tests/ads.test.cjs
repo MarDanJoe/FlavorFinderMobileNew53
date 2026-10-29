@@ -102,3 +102,139 @@ test("development and default signed configurations cannot accidentally use live
   assert.equal(mode({ EXPO_PUBLIC_ADS_MODE: "off" }, false), "off");
   assert.equal(mode({ EXPO_PUBLIC_ADS_MODE: "live" }, false, true), "off");
 });
+
+function bannerFixture({
+  mode = "test",
+  focused = true,
+  ready = true,
+  resultsUnit = "results-live",
+  platform = "ios",
+} = {}) {
+  let cursor = 0,
+    starts = 0;
+  const slots = [];
+  const react = {
+    createElement: (type, props, ...children) => ({
+      type,
+      props: props || {},
+      children,
+    }),
+    useState(initial) {
+      const i = cursor++;
+      slots[i] ??= { value: initial };
+      return [slots[i].value, (value) => (slots[i].value = value)];
+    },
+    useEffect(effect, deps) {
+      const i = cursor++;
+      if (!slots[i] || !deps.every((v, n) => Object.is(v, slots[i].deps[n]))) {
+        slots[i] = { deps };
+        effect();
+      }
+    },
+    useSyncExternalStore: (_subscribe, get) => get(),
+  };
+  const exports = {};
+  const source = ts.transpileModule(
+    fs.readFileSync("src/components/SavedAd.native.tsx", "utf8"),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        jsx: ts.JsxEmit.React,
+        esModuleInterop: true,
+      },
+    },
+  ).outputText;
+  new Function("exports", "require", source)(exports, (name) => {
+    if (name === "react") return react;
+    if (name === "react-native")
+      return {
+        Platform: { OS: platform },
+        Text: "Text",
+        View: "View",
+        TouchableOpacity: "Button",
+      };
+    if (name === "@react-navigation/native")
+      return { useIsFocused: () => focused };
+    if (name === "react-native-google-mobile-ads")
+      return {
+        BannerAd: "Banner",
+        BannerAdSize: { BANNER: "size" },
+        TestIds: { BANNER: "test-unit" },
+      };
+    if (name === "../config/ads")
+      return {
+        adsMode: mode,
+        savedBannerUnitId: "saved-live",
+        resultsBannerUnitId: resultsUnit,
+      };
+    if (name === "../services/ads/runtime.native")
+      return {
+        adsController: {
+          subscribe() {},
+          getSnapshot: () => ({ ready, revision: 1 }),
+          start: async () => {
+            starts++;
+          },
+        },
+      };
+    if (name === "../theme") return { colors: {} };
+    throw Error(name);
+  });
+  const nodes = (node) =>
+    !node || typeof node !== "object"
+      ? []
+      : [node, ...(node.children ?? []).flat(Infinity).flatMap(nodes)];
+  return {
+    render(placement) {
+      cursor = 0;
+      return exports.SavedAd({ placement });
+    },
+    nodes,
+    get starts() {
+      return starts;
+    },
+  };
+}
+test("Saved and finished-result banners use separate live units and only test inventory in test mode", () => {
+  for (const mode of ["live", "test"]) {
+    const f = bannerFixture({ mode });
+    for (const placement of ["saved", "results"]) {
+      const ad = f.nodes(f.render(placement)).find((n) => n.type === "Banner");
+      assert.equal(
+        ad.props.unitId,
+        mode === "test"
+          ? "test-unit"
+          : placement === "saved"
+            ? "saved-live"
+            : "results-live",
+      );
+      assert.equal(ad.props.requestOptions.requestNonPersonalizedAdsOnly, true);
+    }
+  }
+});
+test("result banners fail closed for missing live configuration, denied consent, hidden screens and disabled platforms", () => {
+  for (const args of [
+    { mode: "live", resultsUnit: "" },
+    { ready: false },
+    { focused: false },
+    { mode: "off" },
+    { platform: "android" },
+  ]) {
+    const f = bannerFixture(args);
+    assert.equal(f.render("results"), null);
+    if (
+      args.resultsUnit === "" ||
+      args.focused === false ||
+      args.mode === "off" ||
+      args.platform === "android"
+    )
+      assert.equal(f.starts, 0);
+  }
+});
+test("a failed banner stays hidden rather than repeatedly requesting ads on rerender", () => {
+  const f = bannerFixture();
+  f.nodes(f.render("results"))
+    .find((n) => n.type === "Banner")
+    .props.onAdFailedToLoad();
+  assert.equal(f.render("results"), null);
+});

@@ -6,13 +6,13 @@ import {
   BannerAdSize,
   TestIds,
 } from "react-native-google-mobile-ads";
-import { adsMode, savedBannerUnitId } from "../config/ads";
+import { adsMode, savedBannerUnitId, resultsBannerUnitId } from "../config/ads";
 import { adsController } from "../services/ads/runtime.native";
 import { colors } from "../theme";
 const options = { requestNonPersonalizedAdsOnly: true };
-function useAds() {
+function useAds(eligible = true) {
   const focused = useIsFocused();
-  const enabled = Platform.OS === "ios" && adsMode !== "off";
+  const enabled = Platform.OS === "ios" && adsMode !== "off" && eligible;
   const state = useSyncExternalStore(
     adsController.subscribe,
     adsController.getSnapshot,
@@ -22,10 +22,14 @@ function useAds() {
   }, [enabled, focused]);
   return { ...state, visible: enabled && focused };
 }
-export function SavedAd() {
-  const state = useAds();
+export function SavedAd({
+  placement = "saved",
+}: { placement?: "saved" | "results" } = {}) {
+  const unitId =
+    placement === "results" ? resultsBannerUnitId : savedBannerUnitId;
+  const state = useAds(adsMode === "test" || !!unitId);
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [state.revision]);
+  useEffect(() => setFailed(false), [state.revision, placement]);
   if (!state.visible || !state.ready || failed) return null;
   return (
     <View
@@ -40,14 +44,17 @@ export function SavedAd() {
         {adsMode === "test" ? "Advertisement · Test ad" : "Advertisement"}
       </Text>
       <BannerAd
-        key={state.revision}
-        unitId={adsMode === "test" ? TestIds.BANNER : savedBannerUnitId}
+        key={`${placement}:${state.revision}`}
+        unitId={adsMode === "test" ? TestIds.BANNER : unitId}
         size={BannerAdSize.BANNER}
         requestOptions={options}
         onAdFailedToLoad={() => setFailed(true)}
       />
     </View>
   );
+}
+export function ResultsAd() {
+  return <SavedAd placement="results" />;
 }
 export function AdPrivacyOptions() {
   const state = useAds();

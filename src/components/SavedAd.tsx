@@ -2,6 +2,9 @@
 export function SavedAd() {
   return null;
 }
+export function ResultsAd() {
+  return null;
+}
 export function AdPrivacyOptions() {
   return null;
 }

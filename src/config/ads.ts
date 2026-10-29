@@ -8,3 +8,5 @@ export const adsMode =
       ? "live"
       : "test";
 export const savedBannerUnitId = admob.savedBannerUnitId;
+
+export const resultsBannerUnitId = admob.resultsBannerUnitId;

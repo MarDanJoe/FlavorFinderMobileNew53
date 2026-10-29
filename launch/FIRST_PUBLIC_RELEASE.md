@@ -1,6 +1,6 @@
 # First public App Store release — October 29, 2026
 
-Status: preparing, not submitted or public. Scope: iPhone, United States, free download, restaurant discovery plus group voting, one live non-personalized banner on Saved. The owner selected live Saved ads and proceeding with the existing individual Apple membership. Preferred draft copyright/contact name: Danny Ambrose. Apple’s verified legal seller/developer name is controlled by membership records and may remain Daniel Leonard Ambrose; do not promise removal of the middle name or substitution of a nickname. No public account identity or legal-policy text has been changed in this preparation.
+Status: preparing, not submitted or public. Scope: iPhone, United States, free download, restaurant discovery plus group voting, live non-personalized banners on Saved and completed group results. The owner selected live Saved ads and later approved an additional completed-results placement and proceeding with the existing individual Apple membership. Preferred draft copyright/contact name: Danny Ambrose. Apple’s verified legal seller/developer name is controlled by membership records and may remain Daniel Leonard Ambrose; do not promise removal of the middle name or substitution of a nickname. No public account identity or legal-policy text has been changed in this preparation.
 
 ## Completed evidence
 
@@ -28,7 +28,8 @@ Status: preparing, not submitted or public. Scope: iPhone, United States, free d
 
 ### 2. Live ads and privacy
 
-- [ ] In AdMob, verify app readiness, public-store linking prerequisites, payment verification status, crawler result and the published US-state message's Flavor Finder inclusion. Do not infer account readiness from the public app-ads.txt fetch.
+- [ ] Complete pre-launch AdMob setup: payment-warning resolution, consent-message inclusion, configured ad units and disclosure/device checks. Account inspection on October 29 shows Requires review and no public store link. App-ads.txt public content is verified, but AdMob's crawler result remains unconfirmed.
+- [ ] After public App Store availability, link the actual listing and complete AdMob readiness review. Google's supported-store link is a prerequisite for that review; do not create a circular requirement that full ad approval must precede Apple's first publication. Serving may be limited before approval; do not promise launch revenue.
 - [ ] Verify consent failure/denial/privacy choices/no-fill on real iPhones; do not click live ads during QA. Test IDs remain the correct way to exercise ad interactions.
 - [ ] Inspect final signed native SDK/privacy manifests and reconcile retained provider/SDK data with Apple disclosures. No ATT prompt currently exists; non-personalized ads still process data.
 - [ ] Only after these checks, explicitly set the selected public build to live Saved inventory. Current EAS production profile remains test mode. Include ads honestly in age rating, privacy and review information.

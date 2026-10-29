@@ -111,6 +111,7 @@ function harness(file, seeded = []) {
         };
       },
     },
+    "../components/SavedAd": { ResultsAd: "ResultsAd" },
     "../components/RestaurantImage": { RestaurantImage: "Image" },
     "../components/GoogleAttribution": { GoogleAttribution: "Attribution" },
     "../services/supabase": { supabase: null },
@@ -567,4 +568,27 @@ test("expired voting rooms retain an exit through room details", () => {
   );
   assert.equal(h.nodes().find((n) => n.type === "Modal").props.visible, false);
   assert.deepEqual(h.actions, []);
+});
+
+test("results ads appear only after a finished winner, away from active voting", () => {
+  const h = votingHarness();
+  h.render();
+  assert.equal(
+    h.nodes().some((n) => n.type === "ResultsAd"),
+    false,
+  );
+  h.slots[0].value = {
+    ...h.slots[0].value,
+    status: "finished",
+    winner: "a",
+    scores: { a: 2 },
+  };
+  h.render();
+  assert.equal(h.nodes().filter((n) => n.type === "ResultsAd").length, 1);
+  h.slots[0].value = { ...h.slots[0].value, winner: null };
+  h.render();
+  assert.equal(
+    h.nodes().some((n) => n.type === "ResultsAd"),
+    false,
+  );
 });

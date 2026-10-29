@@ -1,6 +1,6 @@
 # App Store listing draft — October 29, 2026
 
-App Store Connect record 6821721808 exists. The owner has tested build 15. The fixed voting viewport is prepared on the review branch but not distributed. Public submission remains pending. The copy in store-metadata.en-US.json is the current structured submission draft; it has not been uploaded. Owner requests live Saved-page ads. Copyright/public identity, screenshots, age rating and final privacy answers remain open.
+App Store Connect record 6821721808 exists. The owner has tested build 15. The fixed voting viewport is prepared on the review branch but not distributed. Public submission remains pending. The copy in store-metadata.en-US.json is the current structured submission draft; it has not been uploaded. Owner requests live Saved/results banners. Copyright/public identity, screenshots, age rating and final privacy answers remain open.
 
 Name: Flavor Finder: Swipe & Vote
 Subtitle: Swipe. Vote. Eat together.
@@ -23,7 +23,7 @@ Eating with friends? Create a voting room and share its six-digit code or invita
 
 Restaurant information is provided by Google Maps. Hours, prices, availability and ratings may change; confirm important details directly with the restaurant. Internet access is required for restaurant discovery and group voting.
 
-Advertising: the planned first public release includes a non-personalized Saved-page banner. Live serving has not been enabled; AdMob readiness and disclosures must be verified before release.
+Advertising: the planned first public release includes a non-personalized banner on Saved and completed group results. Live serving has not been enabled; AdMob readiness and disclosures must be verified before release.
 
 Keywords draft: restaurants,food,dining,group,vote,swipe,nearby,cuisine,favorites,date night
 Category candidate: Food & Drink

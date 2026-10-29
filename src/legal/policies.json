@@ -1,7 +1,7 @@
 {
   "operator": "Flavor Finder",
   "supportEmail": "ohlqcommunity@gmail.com",
-  "updated": "October 19, 2026",
+  "updated": "October 29, 2026",
   "privacy": {
     "title": "Privacy Policy",
     "intro": "Flavor Finder helps you discover places to eat and choose together with friends. This policy describes the current US service and how we handle information.",
@@ -32,7 +32,7 @@
       },
       {
         "title": "Advertising, purchases and children",
-        "text": "New versions of Flavor Finder include Google AdMob banner advertising on Saved. Internal testing uses Google test ads, which do not earn revenue. We request non-personalized ads and do not pass restaurant searches, precise location, account details, favorites or votes to the ad SDK. Google may process IP addresses (including for approximate location), app or device identifiers, ad impressions and interactions, diagnostics and performance information to serve, measure and protect advertising. Non-personalized advertising still involves data processing. We use Google’s consent tools before requesting ads and provide Profile → Ad privacy choices when Google indicates regional privacy options are required. We do not request Apple’s tracking permission or intentionally access IDFA. No paid membership or purchases are included. Flavor Finder is intended for a general audience and is not directed to children under 13. Contact us if you believe a child has provided personal information."
+        "text": "Versions with advertising enabled may show Google AdMob banners on Saved and completed group results. Banners are not placed in active swiping or voting. Internal testing uses Google test ads, which do not earn revenue. We request non-personalized ads and do not pass restaurant searches, precise location, account details, favorites or votes to the ad SDK. Google may process IP addresses (including for approximate location), app or device identifiers, ad impressions and interactions, diagnostics and performance information to serve, measure and protect advertising. Non-personalized advertising still involves data processing. We use Google’s consent tools before requesting ads and provide Profile → Ad privacy choices when Google indicates regional privacy options are required. We do not request Apple’s tracking permission or intentionally access IDFA. No paid membership or purchases are included. Flavor Finder is intended for a general audience and is not directed to children under 13. Contact us if you believe a child has provided personal information."
       },
       {
         "title": "Security and policy updates",

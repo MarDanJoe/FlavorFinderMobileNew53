@@ -35,3 +35,17 @@ Sources: https://developers.google.com/admob/ios/test-ads ; https://developers.g
 ## October 29 public-release preparation
 
 Owner selected live Saved-page ads for the first public release. This is the planned configuration, not confirmation that live inventory or AdMob account readiness is active. Current EAS production builds remain pinned to test mode. The public hostname-root app-ads.txt was fetched successfully today and its publisher line matches the configured account. AdMob crawler verification, app readiness/store linking, bank verification and final consent/privacy/device checks are still unverified. See FIRST_PUBLIC_RELEASE.md before changing the release profile.
+
+
+## October 29 authenticated account check and results placement
+
+TinyFish read-only inspection confirmed Flavor Finder's readiness label is Requires review and App store details is unconfigured. Saved list banner ending /8641037145 exists. The public root app-ads.txt content matches, but account crawler status was not visible. One published and one draft US-state message were visible; inclusion/payment requirement were inspected further in a separate read-only task. No readiness, payment or privacy setting was changed by the initial inspection.
+
+Owner requested another placement. Created exactly one standard Banner unit, Voting results banner, ID ca-app-pub-7492972275879789/6081831146, under the existing Flavor Finder iOS app. Saved unit is unchanged. The prepared client renders it only on finished rooms with a winner, below result/room actions with additional spacing. It is never rendered during active voting, waiting lobbies or all-pass results. It shares the existing consent-gated, coalesced SDK initialization and non-personalized request options. Test mode still uses Google's test unit; missing live configuration or ad failure hides the banner. All 100 tests, TypeScript and formatting pass. Physical-device placement/consent checks and the final signed public configuration remain pending. No new cloud build or live inventory activation occurred here.
+
+Google readiness sequencing: link the public supported-store listing after publication to start review; limited serving may apply before approval. Do not treat missing public store linkage in a not-yet-published app as something a TestFlight URL can solve. Reference: https://support.google.com/admob/answer/10564477 and https://support.google.com/admob/answer/9989980 .
+
+
+Follow-up read-only account inspection found the published English US-state message associated with two apps, but individual app names/IDs and a privacy-policy URL were not exposed by the inspected views. Earlier owner confirmation of Flavor Finder inclusion and URL entry remains historical evidence; this automated check did not independently reverify it. Do not claim a missing field proves the policy URL is unconfigured.
+
+The generic payment warning remains. The Verification tab displayed Verify your identity with a threshold-based explanatory notice, without an explicit pending/completed result. No bank-verification status was visible. This does not establish the cause of the alert or prove bank verification complete; the account owner must resolve the actual payment-account requirement directly. No financial values/details were collected into repository evidence, and no payment/privacy settings were changed. The additional results-banner native export passed (1,132 modules, 3.1 MB).

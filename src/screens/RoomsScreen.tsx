@@ -28,6 +28,7 @@ import {
 import { supabase } from "../services/supabase";
 import { getRestaurantById } from "../services/api";
 import { Restaurant } from "../hooks/useRestaurants";
+import { ResultsAd } from "../components/SavedAd";
 import { RestaurantImage } from "../components/RestaurantImage";
 import { GoogleAttribution } from "../components/GoogleAttribution";
 import { roomInviteMessage } from "../services/invites";
@@ -745,6 +746,11 @@ export default function RoomsScreen({
                   ? () => void perform("leave")
                   : leave,
                 true,
+              )}
+              {room.status === "finished" && !!room.winner && (
+                <View style={{ marginTop: 24 }}>
+                  <ResultsAd />
+                </View>
               )}
             </>
           )}
