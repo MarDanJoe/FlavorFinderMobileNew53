@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import policies from "../legal/policies.json";
+import notices from "../legal/notices.json";
 import { colors, layout } from "../theme";
 export default function LegalScreen({
   route,
@@ -59,6 +60,30 @@ export default function LegalScreen({
             <Text style={layout.subtitle}>{section.text}</Text>
           </View>
         ))}
+        {key === "support" &&
+          notices.map((notice) => (
+            <View key={notice.name} style={{ marginTop: 24 }}>
+              <Text
+                accessibilityRole="header"
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: colors.ink,
+                  marginBottom: 8,
+                }}
+              >
+                {notice.name} · Open-source notice
+              </Text>
+              <Text style={layout.subtitle}>{notice.text}</Text>
+              <TouchableOpacity
+                accessibilityRole="link"
+                onPress={() => link(notice.source)}
+                style={{ paddingVertical: 12 }}
+              >
+                <Text style={{ color: colors.green }}>License source ↗</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
         <TouchableOpacity
           accessibilityRole="link"
           onPress={() => link(`mailto:${policies.supportEmail}`)}

@@ -16,3 +16,8 @@ This inventory records evidence, not a blanket clearance of every asset.
 Remaining: confirm branding creation history, clear/replace legacy imagery, include full third-party notices in distributed acknowledgements, inspect native bundle and keep source/license evidence with future assets. No AI-image license claim can be made without knowing which tool, terms and inputs produced the image.
 
 Follow-up source trace: git history identifies f3f7c55 as the addition of current branding and all five sample food images. No original download URL, tool receipt, prompt or image license was found in repository documentation. Git provenance establishes when files entered the repository, not permission to use the underlying content. Native config continues to exclude sample food images; current iOS branding still needs creation-source confirmation.
+
+
+## October 29 release preparation
+
+Added the official Ionicons MIT copyright/permission text alongside the existing Expo Vector Icons notice in assets/licenses and src/legal/notices.json. Legal Support now renders both full notices and source links. The static Support page generator includes the same notices; generated docs/public files are prepared but not yet republished. Both copyright strings were verified in the exported Hermes bundle. This closes the known icon-font/wrapper notice omission in the prepared binary; it is not a claim that all third-party/native SDK notices or legacy imagery have been fully cleared.
