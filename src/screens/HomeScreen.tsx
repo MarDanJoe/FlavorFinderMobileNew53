@@ -24,6 +24,8 @@ import { LocationPicker } from "../components/LocationPicker";
 import { GoogleAttribution } from "../components/GoogleAttribution";
 import { FilterSheet } from "../components/FilterSheet";
 
+import { cuisineLabel } from "../config/cuisines";
+
 const cuisines = [
   { label: "All flavors", value: "", icon: "✨" },
   { label: "Pizza", value: "pizza", icon: "🍕" },
@@ -160,9 +162,7 @@ export function HomeScreen({
       },
     }),
   ).current;
-  const selectedCuisine =
-    cuisines.find((c) => c.value === library.preferences.cuisine)?.label ??
-    "All flavors";
+  const selectedCuisine = cuisineLabel(library.preferences.cuisine);
   return (
     <SafeAreaView style={layout.screen} edges={["top", "left", "right"]}>
       <View style={{ flex: 1 }}>

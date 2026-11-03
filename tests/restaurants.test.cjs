@@ -5,7 +5,11 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 // Exercise the hook with deterministic location, API responses, and hook scheduling.
-function harness(search, permission = "granted") {
+function harness(
+  search,
+  permission = "granted",
+  position = () => ({ latitude: 40, longitude: -74 }),
+) {
   const slots = [];
   const locationTimers = new Map();
   let timerId = 0;
@@ -88,7 +92,7 @@ function harness(search, permission = "granted") {
               ? permission()
               : { status: permission },
           getCurrentPositionAsync: async () => ({
-            coords: { latitude: 40, longitude: -74 },
+            coords: position(),
           }),
         };
       if (name === "../services/api") return { searchRestaurants: search };
@@ -116,6 +120,10 @@ function harness(search, permission = "granted") {
         await Promise.resolve();
       }
       return output;
+    },
+    renderBeforeEffects() {
+      cursor = 0;
+      return exports.useRestaurants(params);
     },
     expireLocation() {
       for (const callback of locationTimers.values()) callback();
@@ -363,4 +371,75 @@ test("sorting appended pages never moves already swiped cards back into the deck
   deck = await app.flush();
   assert.equal(deck.currentRestaurant.id, "later");
   assert.equal(requests, 2);
+});
+
+test("refreshing current location reacquires GPS instead of searching yesterday's coordinates", async () => {
+  let latitude = 40;
+  const calls = [];
+  const app = harness(
+    async (params) => {
+      calls.push(params);
+      const item = place(String(params.latitude));
+      item.geometry.location.lat = params.latitude;
+      return { results: [item] };
+    },
+    "granted",
+    () => ({ latitude, longitude: -74 }),
+  );
+  let result = await app.flush();
+  assert.equal(result.currentRestaurant.id, "40");
+  latitude = 41;
+  result.refreshRestaurants();
+  result = await app.flush();
+  assert.equal(result.currentRestaurant.id, "41");
+  assert.equal(calls.at(-1).latitude, 41);
+});
+
+test("changing cities immediately hides old cards and ignores a late previous-city page", async () => {
+  let resolveOld;
+  const calls = [];
+  const app = harness(async (params) => {
+    calls.push(params);
+    if (params.pageToken)
+      return new Promise((resolve) => {
+        resolveOld = resolve;
+      });
+    const item = place(String(params.latitude));
+    item.geometry.location.lat = params.latitude;
+    return {
+      results: [item],
+      nextPageToken: params.latitude === 40 ? "old-page" : undefined,
+    };
+  });
+  let result = await app.flush();
+  result.nextRestaurant();
+  await app.flush();
+  app.filters({ searchLocation: { latitude: 41, longitude: -74 } });
+  result = app.renderBeforeEffects();
+  assert.equal(result.restaurants.length, 0);
+  assert.equal(result.currentRestaurant, undefined);
+  result = await app.flush();
+  assert.equal(result.currentRestaurant.id, "41");
+  resolveOld({ results: [place("stale")] });
+  result = await app.flush();
+  assert.equal(result.currentRestaurant.id, "41");
+  assert.equal(result.restaurants.length, 1);
+  assert.equal(calls.at(-1).pageToken, undefined);
+});
+
+test("new address searches discard out-of-range downtown restaurants", async () => {
+  const app = harness(async () => {
+    const home = place("home");
+    home.geometry.location.lat = 41;
+    return { results: [place("old downtown"), home] };
+  });
+  app.filters({
+    searchLocation: { latitude: 41, longitude: -74 },
+    radius: 1609,
+  });
+  const result = await app.flush();
+  assert.deepEqual(
+    Array.from(result.restaurants, (r) => r.id),
+    ["home"],
+  );
 });

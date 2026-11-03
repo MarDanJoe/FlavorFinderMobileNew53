@@ -95,6 +95,16 @@ function harness() {
     },
   ).outputText;
   new Function("exports", "require", source)(exports, (name) => {
+    if (name === "../config/cuisines") {
+      const catalog = {};
+      new Function(
+        "exports",
+        ts.transpileModule(fs.readFileSync("src/config/cuisines.ts", "utf8"), {
+          compilerOptions: { module: ts.ModuleKind.CommonJS },
+        }).outputText,
+      )(catalog);
+      return catalog;
+    }
     if (name === "react") return react;
     if (name === "react-native") return native;
     if (name === "react-native-safe-area-context")

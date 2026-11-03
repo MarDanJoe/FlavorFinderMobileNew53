@@ -8,6 +8,7 @@ import {
   Switch,
   StyleSheet,
 } from "react-native";
+import { cuisineOptions } from "../config/cuisines";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, layout } from "../theme";
 import {
@@ -109,14 +110,7 @@ export function FilterSheet({
             </Text>
             <Text style={styles.label}>CUISINE</Text>
             {chips(
-              [
-                { label: "All flavors", value: "" },
-                { label: "Pizza", value: "pizza" },
-                { label: "Tacos", value: "tacos" },
-                { label: "Japanese", value: "japanese" },
-                { label: "Burgers", value: "burgers" },
-                { label: "Brunch", value: "brunch" },
-              ].map((cuisine) => ({
+              cuisineOptions.map((cuisine) => ({
                 label: cuisine.label,
                 selected: draft.cuisine === cuisine.value,
                 action: () => setDraft({ ...draft, cuisine: cuisine.value }),

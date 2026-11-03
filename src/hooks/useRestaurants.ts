@@ -76,6 +76,7 @@ interface UseRestaurantsParams {
 export const useRestaurants = (params?: UseRestaurantsParams) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [resultsKey, setResultsKey] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resolvedLocation, setResolvedLocation] = useState<{
@@ -119,6 +120,17 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     params?.searchLocation?.latitude,
     params?.searchLocation?.longitude,
   ]);
+  const searchKey = JSON.stringify([
+    locationKey,
+    radius,
+    rating,
+    prices,
+    cuisine,
+    openNow,
+    refreshVersion,
+  ]);
+  // Never expose a previous area's cards, even before effects clear state.
+  const currentResults = resultsKey === searchKey ? restaurants : [];
   const location =
     resolvedLocation?.key === locationKey ? resolvedLocation.position : null;
 
@@ -315,12 +327,13 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     sourceOrder.current.clear();
     nextPageToken.current = undefined;
     setRestaurants([]);
+    setResultsKey(searchKey);
     setCurrentIndex(0);
     if (location) void fetchPage(true, requestGeneration);
     return () => {
       generation.current++;
     };
-  }, [fetchPage, refreshVersion]);
+  }, [fetchPage, searchKey]);
 
   const nextRestaurant = useCallback(() => {
     if (fetching.current || !restaurants.length) return;
@@ -344,19 +357,20 @@ export const useRestaurants = (params?: UseRestaurantsParams) => {
     }
   }, []);
   const refreshRestaurants = useCallback(() => {
-    if (!location) setLocationRetry((version) => version + 1);
+    if (!params?.searchLocation || !location)
+      setLocationRetry((version) => version + 1);
     else setRefreshVersion((version) => version + 1);
-  }, [location]);
+  }, [location, params?.searchLocation]);
   return {
-    restaurants,
-    currentRestaurant: restaurants[currentIndex],
-    loading,
-    error,
+    restaurants: currentResults,
+    currentRestaurant: currentResults[currentIndex],
+    loading: enabled && (loading || resultsKey !== searchKey),
+    error: resultsKey === searchKey ? error : null,
     nextRestaurant,
     previousRestaurant,
     refreshRestaurants,
-    currentIndex,
-    total: restaurants.length,
+    currentIndex: resultsKey === searchKey ? currentIndex : 0,
+    total: currentResults.length,
     useDeviceLocation: () => setLocationRetry((version) => version + 1),
   };
 };

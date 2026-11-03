@@ -139,6 +139,16 @@ function harness(file, seeded = []) {
       },
     }).outputText,
   )(exports, (n) => {
+    if (n === "../config/cuisines") {
+      const catalog = {};
+      new Function(
+        "exports",
+        ts.transpileModule(fs.readFileSync("src/config/cuisines.ts", "utf8"), {
+          compilerOptions: { module: ts.ModuleKind.CommonJS },
+        }).outputText,
+      )(catalog);
+      return catalog;
+    }
     if (n in modules) return modules[n];
     throw Error(n);
   });
@@ -591,4 +601,32 @@ test("results ads appear only after a finished winner, away from active voting",
     h.nodes().some((n) => n.type === "ResultsAd"),
     false,
   );
+});
+
+test("expanded cuisines are selectable in the shared Discover and room filter sheet", () => {
+  const h = harness("src/components/FilterSheet.tsx");
+  let applied;
+  const props = {
+    visible: true,
+    value: { radius: 8047, rating: 0, cuisine: "", price: [], openNow: false },
+    onClose() {},
+    onApply: (p) => {
+      applied = p;
+    },
+  };
+  for (const [label, value] of [
+    ["Indian", "indian"],
+    ["Ethiopian", "ethiopian"],
+    ["Filipino", "filipino"],
+    ["Middle Eastern", "middle eastern"],
+    ["Caribbean", "caribbean"],
+    ["Vietnamese", "vietnamese"],
+  ]) {
+    h.render(props);
+    h.button(label).props.onPress();
+    h.render(props);
+    assert.equal(h.button(label).props.accessibilityState.selected, true);
+    h.button("Find my flavor").props.onPress();
+    assert.equal(applied.cuisine, value);
+  }
 });
