@@ -130,3 +130,28 @@ test("download configuration refuses unofficial or executable destinations", () 
     );
   }
 });
+
+test("prepared App Store URL keeps beta downloads until explicit launch activation", () => {
+  const links = {
+    appStoreUrl: "https://apps.apple.com/us/app/id6821721808",
+    testFlightUrl: "https://testflight.apple.com/join/AbCd1234",
+    appStoreLive: false,
+  };
+  const beta = generate(links);
+  assert.match(beta, /Get the beta on TestFlight/);
+  assert.doesNotMatch(beta, /href="https:\/\/apps.apple.com/);
+  const live = generate({ ...links, appStoreLive: true });
+  assert.match(live, /href="https:\/\/apps.apple.com\/us\/app\/id6821721808"/);
+  assert.match(live, /Download on the App Store/);
+  assert.doesNotMatch(live, /Get the beta|testflight.apple.com/);
+  assert.throws(
+    () => generate({ appStoreLive: true, appStoreUrl: "" }),
+    /official App Store URL/,
+  );
+});
+
+test("shared room messages remain valid after switching from beta to public release", () => {
+  const text = exportsObject.roomInviteMessage("001234");
+  assert.doesNotMatch(text, /beta|TestFlight|requires an invitation/i);
+  assert.match(text, /Copy the room code before installing/);
+});

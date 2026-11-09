@@ -24,7 +24,13 @@ function validLink(value, host, prefix) {
     );
   return url.href;
 }
-const appStore = validLink(links.appStoreUrl, "apps.apple.com", "/");
+const preparedAppStore = validLink(links.appStoreUrl, "apps.apple.com", "/");
+if (links.appStoreLive === true && !preparedAppStore)
+  throw new Error(
+    "Set an official App Store URL before enabling the public download",
+  );
+// A prepared URL must not replace the working beta until release is verified.
+const appStore = links.appStoreLive === true ? preparedAppStore : "";
 const beta = validLink(links.testFlightUrl, "testflight.apple.com", "/join/");
 const url = appStore || beta;
 const html = fs
