@@ -621,6 +621,7 @@ test("expanded cuisines are selectable in the shared Discover and room filter sh
     ["Middle Eastern", "middle eastern"],
     ["Caribbean", "caribbean"],
     ["Vietnamese", "vietnamese"],
+    ["Healthy", "healthy"],
   ]) {
     h.render(props);
     h.button(label).props.onPress();

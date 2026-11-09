@@ -17,6 +17,7 @@ export const cuisineOptions = [
   { label: "Filipino", value: "filipino" },
   { label: "French", value: "french" },
   { label: "Greek", value: "greek" },
+  { label: "Healthy", value: "healthy" },
   { label: "Indian", value: "indian" },
   { label: "Italian", value: "italian" },
   { label: "Jamaican", value: "jamaican" },
