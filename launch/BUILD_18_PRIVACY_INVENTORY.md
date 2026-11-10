@@ -2,7 +2,7 @@
 
 Inspected the actual signed EAS IPA, native version 1.0.0 (18), bundle com.mardanjoe.flavorfinder. SHA-256: `fa60fbdf071a1b1318fa41f0f061ffe4c2fd2f9db2f2eda5242ffeb34efea8f2`.
 
-Twelve bundled PrivacyInfo.xcprivacy manifests were parsed. Local detailed evidence is ignored at verification/build18-release/privacy-inventory.json. This records declarations, not proof of runtime tracking or provider retention.
+Twelve zip entries were parsed; follow-up comparison found 11 unique PrivacyInfo.xcprivacy paths (one duplicate zip entry). Local detailed evidence is ignored at verification/build18-release/privacy-inventory.json. This records declarations, not proof of runtime tracking or provider retention.
 
 ## Google ads and consent declarations
 

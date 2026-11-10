@@ -25,3 +25,24 @@ Owner was asked whether to retain live ads and finish verification or approve an
 ## Validation
 
 114 tests passed after preparing the separate release profile. Release configuration check passed. Source screen behavior was not changed in this pass. Signed build18 inventory is in BUILD_18_PRIVACY_INVENTORY.md; the raw IPA/JSON remain ignored local evidence.
+
+
+## Follow-up — privacy resolved and binary uploaded
+
+Owner reiterated keep live ads and finish verification. Additional evidence resolved the earlier action-review objections:
+
+- Native RNGoogleMobileAdsCommon request builder sets npa=1 from requestNonPersonalizedAdsOnly. Both banner implementations use that builder. Consent controller configures/initializes only after canRequestAds.
+- Signed build19 has the same unique privacy-manifest paths and data as build18 (11 unique paths; the earlier 12 zip-entry count included a duplicate path). Google Ads/UMP declarations unchanged. No ATT usage description. No app account/location/query data is supplied to the ad request.
+- AdMob Publisher data UI: Flavor Finder analytics connection OFF, surveys OFF; identity control is ON account-wide. It was not changed because Orbit Match shares the account. Only default AdMob mediation group exists.
+- Current Google first-party identifier documentation says publisher first-party IDs cannot link activity to third-party apps and respect NPA. Combined with the signed app's no-ATT/NPA configuration, Device ID was disclosed as collected, linked, advertising/analytics purposes, not cross-app tracking. This is a configuration/provider-contract determination, not a claim that identifiers are absent or an instrumented network-capture test.
+- Precise location is attached to a persistent guest or registered account token in placesFetch; anonymous signup still creates identity.user.id, used by the function's quota records. Precise location is disclosed linked, App Functionality, not advertising/tracking.
+- Search History disclosure covers operational provider request logs, not merely synced filters: authenticated URLs contain city query/cuisine keyword; Supabase documents retained request.url and request.search fields. Disclosed linked, App Functionality, not advertising/tracking. No exact provider retention period is claimed.
+- All 13 categories completed; coarse location purposes include Ads + UMP union. Name/email/userID/other user content remain linked App Functionality. Google advertising/interactions/diagnostics purposes match their manifests.
+- Owner personally clicked Publish at Apple's legal privacy attestation. Browser verified “Published a few seconds ago by Danny Ambrose”. Privacy publishing is COMPLETE.
+- Build19 completed on Expo, SHA256 a8cb0a16371124d7e5e6ad4b561e513a4eaa0e47d72f109ca13b4e26d80f9b62. iPhone-only, non-exempt encryption false, delayed ad measurement true. Local IPA/manifests ignored under verification/build19-release.
+- Existing build19 uploaded separately to App Store Connect, submission 2dd32f5c-7a9e-4f33-911e-366f6f0b2483 FINISHED. Apple Build Uploads shows version1.0.0(19) Processing. Do not start a duplicate build/upload.
+- Review notes now describe build19/live NPA/UMP and optional sign-in. Manual release still selected. Old build17 was unselected from the version only; Apple confirms this does not delete it from the account. No build currently selected until19 is processed; Add for Review is disabled for that reason.
+
+Next: wait for19 to process, select it and save, run Add for Review validation, submit to App Review and verify Waiting for Review. Public release/invite switch remain separate.
+
+Sources: https://support.google.com/admob/answer/14199649 , https://developers.google.com/admob/ios/privacy/idfa , https://support.google.com/admob/answer/7676680 , https://supabase.com/docs/guides/observability/log-field-reference , https://developer.apple.com/help/app-store-connect/manage-builds/choose-a-build-to-submit/ .
