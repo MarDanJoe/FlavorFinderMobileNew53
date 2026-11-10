@@ -46,3 +46,13 @@ Owner reiterated keep live ads and finish verification. Additional evidence reso
 Next: wait for19 to process, select it and save, run Add for Review validation, submit to App Review and verify Waiting for Review. Public release/invite switch remain separate.
 
 Sources: https://support.google.com/admob/answer/14199649 , https://developers.google.com/admob/ios/privacy/idfa , https://support.google.com/admob/answer/7676680 , https://supabase.com/docs/guides/observability/log-field-reference , https://developer.apple.com/help/app-store-connect/manage-builds/choose-a-build-to-submit/ .
+
+
+## Final outcome — SUBMITTED
+
+Apple finished processing19. Selected native1.0.0(19) UUID9414d1a4-ea35-4ce6-88c6-6c715b1b1703 and saved. Add for Review passed validation. Owner's explicit submission authorization was exercised at Submit for Review. Browser verified “1 Item Submitted” and version status “Waiting for Review”; draft submissions count0.
+
+Review submission ID: b39bcd1c-783a-4cd8-ba47-1eada37dca84.
+Review page: https://appstoreconnect.apple.com/apps/6821721808/distribution/reviewsubmissions/details/b39bcd1c-783a-4cd8-ba47-1eada37dca84
+
+Manual release remains selected. App is NOT publicly released. Wait for Apple email/review outcome; resolve any review feedback. After approval, separately release publicly, verify download URL, switch distribution.json appStoreLive and publish invite page, link public store listing in AdMob for readiness review. Live ad fill is not guaranteed before AdMob readiness approval. No further cloud build/upload is required unless new changes or Apple feedback requires one.
