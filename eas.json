@@ -22,6 +22,12 @@
         "image": "macos-tahoe-26.5-xcode-26.6"
       }
     },
+    "app-store": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_ADS_MODE": "live"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "environment": "production",

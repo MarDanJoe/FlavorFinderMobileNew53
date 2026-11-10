@@ -4,7 +4,7 @@ November 9, 2026. Version 1.0.0 (18), source commit `39711e8` on `codex/architec
 
 - EAS build: `66ac15b6-a68c-4896-863e-9b89ac171ff6`
 - Automatic Apple submission: `8cde60e6-3ddc-455e-b622-32340354d6ef`
-- Source uploaded and automatic submission scheduled. Build completion, Apple processing and tester availability are not yet confirmed.
+- Follow-up: EAS build and automatic Apple upload were confirmed FINISHED without errors. App Store version selection still showed build17 during submission preparation; build18 availability/selection needs checking before review. Tester installation not verified.
 
 Adds Healthy to the shared Discover and room cuisine/food filters (34 specific searches plus All flavors). Healthy is a provider search term, not a nutritional certification. Includes build 17's expanded cuisines/location fixes and neutral public/beta invitation wording prepared afterward. App Store invitation destination remains staged with appStoreLive false; current download page retains the beta path.
 
